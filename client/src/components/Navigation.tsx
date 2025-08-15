@@ -163,7 +163,7 @@ export default function Navigation() {
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                     {user.profileImageUrl ? (
                       <img 
-                        src={user.profileImageUrl} 
+                        src={`${user.profileImageUrl}?v=${user.updatedAt || new Date().getTime()}`} 
                         alt="Profile" 
                         className="w-8 h-8 rounded-full object-cover"
                         data-testid="user-avatar-image"

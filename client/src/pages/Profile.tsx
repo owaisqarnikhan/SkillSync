@@ -118,8 +118,10 @@ export default function Profile() {
           profileImageUrl: uploadURL
         });
         
-        // Refresh user data
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        // Force refresh user data immediately
+        await queryClient.refetchQueries({ queryKey: ["/api/auth/user"], type: 'active' });
+        // Also remove from cache to force fresh fetch
+        queryClient.removeQueries({ queryKey: ["/api/auth/user"] });
         
         toast({
           title: "Profile Picture Updated",
@@ -210,7 +212,7 @@ export default function Profile() {
                   <div className="w-32 h-32 bg-primary rounded-full flex items-center justify-center overflow-hidden">
                     {user.profileImageUrl ? (
                       <img
-                        src={user.profileImageUrl}
+                        src={`${user.profileImageUrl}?v=${user.updatedAt || new Date().getTime()}`}
                         alt="Profile"
                         className="w-full h-full object-cover"
                         data-testid="profile-picture"
