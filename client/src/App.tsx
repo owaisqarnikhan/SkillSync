@@ -4,8 +4,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useScrollPosition } from "@/hooks/useScrollPosition";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import MobileHeader from "@/components/MobileHeader";
 import NotFound from "@/pages/not-found";
 import SecureLogin from "@/pages/SecureLogin";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
@@ -19,6 +21,7 @@ import SystemAdmin from "@/pages/SystemAdmin";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { isScrolled } = useScrollPosition();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Listen for sidebar collapse state changes
@@ -70,8 +73,14 @@ function Router() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Mobile Header - shown only on mobile screens */}
+      <MobileHeader isScrolled={isScrolled} />
+      
+      {/* Desktop Sidebar - hidden on mobile */}
       <Sidebar />
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
+      
+      {/* Main Content Area */}
+      <div className={`transition-all duration-300 pt-16 lg:pt-0 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
         <main className="min-h-screen">
           <Switch>
             {/* Main Dashboard - shows role-based dashboard */}
@@ -87,7 +96,9 @@ function Router() {
             <Route path="/venues" component={Venues} />
             <Route path="/teams" component={Teams} />
             <Route path="/profile" component={Profile} />
-            <Route path="/admin/system" component={SystemAdmin} />
+            <Route path="/system-admin" component={SystemAdmin} />
+            <Route path="/superadmin" component={SuperAdminDashboard} />
+            <Route path="/manager" component={ManagerDashboard} />
             
             {/* Catch-all */}
             <Route component={NotFound} />

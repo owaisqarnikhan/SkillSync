@@ -217,7 +217,7 @@ export default function BookingModal({
                     <SelectContent>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id} data-testid={`team-option-${team.id}`}>
-                          {team.name} ({team.country.name} - {team.sport.name})
+                          {team.name} ({team.country?.name || 'Unknown'} - {team.sport || 'Unknown Sport'})
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -1786,6 +1786,30 @@ export default function SuperAdminDashboard() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="venue-type">Venue Type</Label>
+                <Select
+                  value={venueFormData.type || ''}
+                  onValueChange={(value) => setVenueFormData(prev => ({ ...prev, type: value as any }))}
+                >
+                  <SelectTrigger data-testid="venue-type-select">
+                    <SelectValue placeholder="Select venue type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="swimming_pool">Swimming Pool</SelectItem>
+                    <SelectItem value="athletics_track">Athletics Track</SelectItem>
+                    <SelectItem value="basketball_court">Basketball Court</SelectItem>
+                    <SelectItem value="volleyball_court">Volleyball Court</SelectItem>
+                    <SelectItem value="badminton_hall">Badminton Hall</SelectItem>
+                    <SelectItem value="tennis_court">Tennis Court</SelectItem>
+                    <SelectItem value="football_field">Football Field</SelectItem>
+                    <SelectItem value="gym">Gym</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="venue-capacity">Capacity</Label>
                 <Input
                   id="venue-capacity"
@@ -1796,16 +1820,16 @@ export default function SuperAdminDashboard() {
                   data-testid="venue-capacity-input"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="venue-location">Location</Label>
-              <Input
-                id="venue-location"
-                value={venueFormData.location || ''}
-                onChange={(e) => setVenueFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="Enter venue location"
-                data-testid="venue-location-input"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="venue-location">Location</Label>
+                <Input
+                  id="venue-location"
+                  value={venueFormData.location || ''}
+                  onChange={(e) => setVenueFormData(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="Enter venue location"
+                  data-testid="venue-location-input"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="venue-description">Description</Label>
@@ -1823,7 +1847,7 @@ export default function SuperAdminDashboard() {
             <Button variant="outline" onClick={() => setVenueModalOpen(false)}>Cancel</Button>
             <Button
               onClick={handleVenueSubmit}
-              disabled={!venueFormData.name || !venueFormData.location || !venueFormData.capacity || createVenueMutation.isPending || updateVenueMutation.isPending}
+              disabled={!venueFormData.name || !venueFormData.type || !venueFormData.location || !venueFormData.capacity || createVenueMutation.isPending || updateVenueMutation.isPending}
               data-testid="venue-submit-button"
             >
               {selectedVenue ? 'Update Venue' : 'Create Venue'}

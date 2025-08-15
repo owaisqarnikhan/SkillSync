@@ -27,6 +27,13 @@ export default function Profile() {
     email: "",
   });
 
+  // Password change state
+  const [passwordFormData, setPasswordFormData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -50,6 +57,30 @@ export default function Profile() {
     onError: (error: Error) => {
       toast({
         title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Password change mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) => 
+      apiRequest("PUT", `/api/users/${user?.id}/password`, data),
+    onSuccess: () => {
+      toast({
+        title: "Password Updated",
+        description: "Your password has been changed successfully.",
+      });
+      setPasswordFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Password Update Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -109,6 +140,33 @@ export default function Profile() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfileMutation.mutate(formData);
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "New password and confirmation password do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordFormData.newPassword.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate({
+      currentPassword: passwordFormData.currentPassword,
+      newPassword: passwordFormData.newPassword,
+    });
   };
 
   if (isLoading) {
@@ -237,6 +295,66 @@ export default function Profile() {
                   >
                     <Save className="w-4 h-4 mr-2" />
                     {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Password Change Card */}
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span>Change Password</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwordFormData.currentPassword}
+                      onChange={(e) => setPasswordFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder="Enter current password"
+                      data-testid="input-current-password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordFormData.newPassword}
+                      onChange={(e) => setPasswordFormData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="Enter new password"
+                      data-testid="input-new-password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordFormData.confirmPassword}
+                      onChange={(e) => setPasswordFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="Confirm new password"
+                      data-testid="input-confirm-password"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button 
+                    type="submit" 
+                    disabled={!passwordFormData.currentPassword || !passwordFormData.newPassword || !passwordFormData.confirmPassword || changePasswordMutation.isPending}
+                    data-testid="button-change-password"
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
                   </Button>
                 </div>
               </form>

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./customAuth";
+import { setupAuth, isAuthenticated, hashPassword, comparePasswords } from "./customAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { 
   insertBookingSchema,
@@ -547,6 +547,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get available time slots for a venue on a specific date
+  app.get('/api/venues/:venueId/availability', isAuthenticated, async (req: any, res) => {
+    try {
+      const { venueId } = req.params;
+      const { date } = req.query;
+      
+      if (!date) {
+        return res.status(400).json({ message: "Date parameter is required" });
+      }
+
+      const venue = await storage.getVenue(venueId);
+      if (!venue) {
+        return res.status(404).json({ message: "Venue not found" });
+      }
+
+      // Get venue's working hours (default 06:00 - 22:00)
+      const workingStartTime = venue.workingStartTime || '06:00';
+      const workingEndTime = venue.workingEndTime || '22:00';
+      const bufferTimeMinutes = venue.bufferTimeMinutes || 15;
+
+      // Parse the date and create time slots
+      const targetDate = new Date(date as string);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(parseInt(workingStartTime.split(':')[0]), parseInt(workingStartTime.split(':')[1]), 0, 0);
+      
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(parseInt(workingEndTime.split(':')[0]), parseInt(workingEndTime.split(':')[1]), 0, 0);
+
+      // Get existing bookings for the venue on this date
+      const existingBookings = await storage.getBookings({
+        venueId,
+        startDate: targetDate.toISOString().split('T')[0],
+        endDate: targetDate.toISOString().split('T')[0],
+      });
+
+      // Filter only active bookings (approved, pending, requested)
+      const activeBookings = existingBookings.filter(booking => 
+        ['approved', 'pending', 'requested'].includes(booking.status)
+      );
+
+      // Generate 1-hour time slots
+      const availableSlots = [];
+      const unavailableSlots = [];
+      let currentTime = new Date(startOfDay);
+
+      while (currentTime < endOfDay) {
+        const slotEnd = new Date(currentTime.getTime() + 60 * 60 * 1000); // 1 hour slot
+        
+        // Check if this slot conflicts with any booking
+        const hasConflict = activeBookings.some(booking => {
+          const bookingStart = new Date(booking.startDateTime);
+          const bookingEnd = new Date(booking.endDateTime);
+          
+          // Add buffer time to booking
+          const bufferStart = new Date(bookingStart.getTime() - bufferTimeMinutes * 60 * 1000);
+          const bufferEnd = new Date(bookingEnd.getTime() + bufferTimeMinutes * 60 * 1000);
+          
+          // Check for overlap
+          return (currentTime < bufferEnd && slotEnd > bufferStart);
+        });
+
+        const slot = {
+          startTime: currentTime.toTimeString().slice(0, 5),
+          endTime: slotEnd.toTimeString().slice(0, 5),
+          available: !hasConflict,
+          datetime: currentTime.toISOString(),
+        };
+
+        if (hasConflict) {
+          unavailableSlots.push(slot);
+        } else {
+          availableSlots.push(slot);
+        }
+
+        currentTime = new Date(currentTime.getTime() + 60 * 60 * 1000); // Move to next hour
+      }
+
+      res.json({
+        venue: {
+          id: venue.id,
+          name: venue.name,
+          workingHours: `${workingStartTime} - ${workingEndTime}`,
+          bufferTimeMinutes,
+        },
+        date: targetDate.toISOString().split('T')[0],
+        availableSlots,
+        unavailableSlots,
+        summary: {
+          totalSlots: availableSlots.length + unavailableSlots.length,
+          availableCount: availableSlots.length,
+          unavailableCount: unavailableSlots.length,
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching venue availability:", error);
+      res.status(500).json({ message: "Failed to fetch venue availability" });
+    }
+  });
+
+  // Check if a specific booking time slot is available
+  app.post('/api/venues/:venueId/check-availability', isAuthenticated, async (req: any, res) => {
+    try {
+      const { venueId } = req.params;
+      const { startDateTime, endDateTime } = req.body;
+      
+      if (!startDateTime || !endDateTime) {
+        return res.status(400).json({ message: "Start and end datetime are required" });
+      }
+
+      const venue = await storage.getVenue(venueId);
+      if (!venue) {
+        return res.status(404).json({ message: "Venue not found" });
+      }
+
+      // Check for conflicts
+      const hasConflicts = await storage.checkBookingConflicts(
+        venueId,
+        new Date(startDateTime),
+        new Date(endDateTime)
+      );
+
+      if (hasConflicts) {
+        // Get conflicting bookings for more detailed feedback
+        const conflictingBookings = await storage.getBookings({
+          venueId,
+          startDate: new Date(startDateTime).toISOString().split('T')[0],
+          endDate: new Date(endDateTime).toISOString().split('T')[0],
+        });
+
+        const conflicts = conflictingBookings.filter(booking => {
+          if (!['approved', 'pending', 'requested'].includes(booking.status)) return false;
+          
+          const bookingStart = new Date(booking.startDateTime);
+          const bookingEnd = new Date(booking.endDateTime);
+          const requestStart = new Date(startDateTime);
+          const requestEnd = new Date(endDateTime);
+          
+          return (requestStart < bookingEnd && requestEnd > bookingStart);
+        });
+
+        return res.json({
+          available: false,
+          message: "Time slot is not available due to existing bookings",
+          conflicts: conflicts.map(booking => ({
+            id: booking.id,
+            startTime: new Date(booking.startDateTime).toTimeString().slice(0, 5),
+            endTime: new Date(booking.endDateTime).toTimeString().slice(0, 5),
+            teamName: booking.team?.name || 'Unknown Team',
+            status: booking.status
+          }))
+        });
+      }
+
+      res.json({
+        available: true,
+        message: "Time slot is available for booking"
+      });
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      res.status(500).json({ message: "Failed to check availability" });
+    }
+  });
+
   app.put('/api/bookings/:id', isAuthenticated, async (req: any, res) => {
     try {
       const existingBooking = await storage.getBooking(req.params.id);
@@ -856,6 +1019,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Password update endpoint for users to change their own password
+  app.put('/api/users/:id/password', isAuthenticated, async (req: any, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters long" });
+      }
+
+      const currentUser = await storage.getUser(req.user.id);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Only allow users to change their own password, unless they're superadmin
+      if (req.params.id !== currentUser.id && currentUser.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Target user not found" });
+      }
+
+      // Verify current password (not required for superadmin changing other users' passwords)
+      if (req.params.id === currentUser.id) {
+        const isCurrentPasswordValid = await comparePasswords(currentPassword, targetUser.password);
+        if (!isCurrentPasswordValid) {
+          return res.status(400).json({ message: "Current password is incorrect" });
+        }
+      }
+
+      // Hash new password
+      const hashedNewPassword = await hashPassword(newPassword);
+      
+      // Update password
+      await storage.updateUser(req.params.id, { password: hashedNewPassword });
+      
+      await createAuditLog(req, 'UPDATE', 'user', req.params.id, null, { passwordChanged: true });
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ message: "Failed to update password" });
+    }
+  });
+
+  // Password reset endpoint for superadmins to reset any user's password
+  app.put('/api/users/:id/reset-password', isAuthenticated, async (req: any, res) => {
+    try {
+      const { newPassword } = req.body;
+      
+      const currentUser = await storage.getUser(req.user.id);
+      if (currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (!newPassword) {
+        return res.status(400).json({ message: "New password is required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters long" });
+      }
+
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await hashPassword(newPassword);
+      
+      // Update password
+      await storage.updateUser(req.params.id, { password: hashedNewPassword });
+      
+      await createAuditLog(req, 'RESET_PASSWORD', 'user', req.params.id, null, { passwordReset: true });
+      
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 

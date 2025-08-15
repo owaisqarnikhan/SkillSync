@@ -485,7 +485,7 @@ export default function UserDashboard() {
                           <div>
                             <div className="flex items-center space-x-2 mb-2">
                               <h4 className="font-medium">{team.name}</h4>
-                              <Badge variant="outline">{team.sport.name}</Badge>
+                              <Badge variant="outline">{team.sport || 'Unknown Sport'}</Badge>
                             </div>
                             <div className="text-sm text-gray-600 space-y-1">
                               <div>Country: {team.country.name}</div>

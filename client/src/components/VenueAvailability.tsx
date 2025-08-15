@@ -82,7 +82,7 @@ export default function VenueAvailability() {
     }))
     .sort((a, b) => {
       // Sort by availability status (available first, then limited, then booked)
-      const statusOrder = { available: 0, limited: 1, booked: 2 };
+      const statusOrder: Record<string, number> = { available: 0, limited: 1, booked: 2 };
       return statusOrder[a.availability.status] - statusOrder[b.availability.status];
     })
     .slice(0, 5); // Show top 5 venues
