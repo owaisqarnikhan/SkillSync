@@ -284,7 +284,7 @@ export default function Profile() {
                     <span>Member Since</span>
                   </div>
                   <p className="font-medium" data-testid="account-created">
-                    {format(new Date(user.createdAt), "MMM yyyy")}
+                    {user.createdAt ? format(new Date(user.createdAt), "MMM yyyy") : "Not available"}
                   </p>
                 </div>
               </div>
