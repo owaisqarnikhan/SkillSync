@@ -37,7 +37,7 @@ export default function UserDashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 1500);
       return;
     }

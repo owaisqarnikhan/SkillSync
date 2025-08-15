@@ -19,6 +19,8 @@ import {
   Menu, 
   User 
 } from "lucide-react";
+import type { NotificationWithDetails } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Navigation() {
   const { user, isAuthenticated } = useAuth();
@@ -26,9 +28,16 @@ export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Fetch unread notifications count
-  const { data: notifications } = useQuery({
-    queryKey: ["/api/notifications", { unreadOnly: true }],
+  const { data: notifications } = useQuery<NotificationWithDetails[]>({
+    queryKey: ["/api/notifications", "unreadOnly=true"],
     enabled: isAuthenticated,
+    queryFn: async () => {
+      const response = await fetch("/api/notifications?unreadOnly=true", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch notifications");
+      return response.json();
+    },
   });
 
   const unreadCount = notifications?.length || 0;
@@ -40,8 +49,16 @@ export default function Navigation() {
     { href: "/teams", label: "Teams", active: location === "/teams" },
   ];
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      await apiRequest("POST", "/api/logout");
+      // Force page reload to clear authentication state
+      window.location.reload();
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Fallback: still reload the page
+      window.location.reload();
+    }
   };
 
   if (!isAuthenticated || !user) {
