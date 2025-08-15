@@ -16,6 +16,42 @@ import {
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   Settings,
   Users,
@@ -24,15 +60,31 @@ import {
   FileText,
   Crown,
   Database,
-  Mail
+  Mail,
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  MapPin,
+  Flag
 } from "lucide-react";
-import type { SystemConfig, DashboardPermission, User } from "@shared/schema";
+import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, InsertTeam, InsertVenue } from "@shared/schema";
 
 export default function SuperAdminDashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const queryClient = useQueryClient();
   const [systemConfig, setSystemConfig] = useState<Partial<SystemConfig>>({});
+  
+  // Team management state
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<TeamWithDetails | null>(null);
+  const [teamFormData, setTeamFormData] = useState<Partial<InsertTeam>>({});
+  
+  // Venue management state
+  const [venueModalOpen, setVenueModalOpen] = useState(false);
+  const [selectedVenue, setSelectedVenue] = useState<VenueWithDetails | null>(null);
+  const [venueFormData, setVenueFormData] = useState<Partial<InsertVenue>>({});
 
   // Redirect if not SuperAdmin
   useEffect(() => {
@@ -66,6 +118,32 @@ export default function SuperAdminDashboard() {
     queryKey: ["/api/dashboard/stats"],
     enabled: isAuthenticated,
   });
+  
+  // Fetch teams, venues, bookings data
+  const { data: teams = [] } = useQuery<TeamWithDetails[]>({
+    queryKey: ["/api/teams"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
+  
+  const { data: venues = [] } = useQuery<VenueWithDetails[]>({
+    queryKey: ["/api/venues"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
+  
+  const { data: bookings = [] } = useQuery<BookingWithDetails[]>({
+    queryKey: ["/api/bookings"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
+  
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["/api/countries"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
+  
+  const { data: sports = [] } = useQuery<Sport[]>({
+    queryKey: ["/api/sports"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
 
   // Update system configuration
   const updateConfigMutation = useMutation({
@@ -97,6 +175,150 @@ export default function SuperAdminDashboard() {
       });
     },
   });
+  
+  // Team CRUD mutations
+  const createTeamMutation = useMutation({
+    mutationFn: (data: InsertTeam) => apiRequest("POST", "/api/teams", data),
+    onSuccess: () => {
+      toast({ title: "Team Created", description: "Team has been created successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      setTeamModalOpen(false);
+      setTeamFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const updateTeamMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertTeam> }) => 
+      apiRequest("PUT", `/api/teams/${id}`, data),
+    onSuccess: () => {
+      toast({ title: "Team Updated", description: "Team has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      setTeamModalOpen(false);
+      setSelectedTeam(null);
+      setTeamFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deleteTeamMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/teams/${id}`),
+    onSuccess: () => {
+      toast({ title: "Team Deleted", description: "Team has been deleted successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  // Venue CRUD mutations
+  const createVenueMutation = useMutation({
+    mutationFn: (data: InsertVenue) => apiRequest("POST", "/api/venues", data),
+    onSuccess: () => {
+      toast({ title: "Venue Created", description: "Venue has been created successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/venues"] });
+      setVenueModalOpen(false);
+      setVenueFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const updateVenueMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertVenue> }) => 
+      apiRequest("PUT", `/api/venues/${id}`, data),
+    onSuccess: () => {
+      toast({ title: "Venue Updated", description: "Venue has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/venues"] });
+      setVenueModalOpen(false);
+      setSelectedVenue(null);
+      setVenueFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deleteVenueMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/venues/${id}`),
+    onSuccess: () => {
+      toast({ title: "Venue Deleted", description: "Venue has been deleted successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/venues"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  // Booking CRUD mutations
+  const updateBookingMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+      apiRequest("PUT", `/api/bookings/${id}`, data),
+    onSuccess: () => {
+      toast({ title: "Booking Updated", description: "Booking has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deleteBookingMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/bookings/${id}`),
+    onSuccess: () => {
+      toast({ title: "Booking Deleted", description: "Booking has been deleted successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
 
   useEffect(() => {
     if (config) {
@@ -106,6 +328,72 @@ export default function SuperAdminDashboard() {
 
   const handleConfigUpdate = () => {
     updateConfigMutation.mutate(systemConfig);
+  };
+
+  // Team handlers
+  const handleCreateTeam = () => {
+    setSelectedTeam(null);
+    setTeamFormData({});
+    setTeamModalOpen(true);
+  };
+
+  const handleEditTeam = (team: TeamWithDetails) => {
+    setSelectedTeam(team);
+    setTeamFormData({
+      name: team.name,
+      countryId: team.countryId,
+      sportId: team.sportId,
+      description: team.description || '',
+    });
+    setTeamModalOpen(true);
+  };
+
+  const handleTeamSubmit = () => {
+    if (selectedTeam) {
+      updateTeamMutation.mutate({ id: selectedTeam.id, data: teamFormData });
+    } else {
+      createTeamMutation.mutate(teamFormData as any);
+    }
+  };
+
+  const handleDeleteTeam = (id: string) => {
+    deleteTeamMutation.mutate(id);
+  };
+
+  // Venue handlers
+  const handleCreateVenue = () => {
+    setSelectedVenue(null);
+    setVenueFormData({});
+    setVenueModalOpen(true);
+  };
+
+  const handleEditVenue = (venue: VenueWithDetails) => {
+    setSelectedVenue(venue);
+    setVenueFormData({
+      name: venue.name,
+      location: venue.location,
+      capacity: venue.capacity,
+      description: venue.description || '',
+      amenities: venue.amenities || [],
+      sportIds: venue.sportIds || [],
+    });
+    setVenueModalOpen(true);
+  };
+
+  const handleVenueSubmit = () => {
+    if (selectedVenue) {
+      updateVenueMutation.mutate({ id: selectedVenue.id, data: venueFormData });
+    } else {
+      createVenueMutation.mutate(venueFormData as any);
+    }
+  };
+
+  const handleDeleteVenue = (id: string) => {
+    deleteVenueMutation.mutate(id);
+  };
+
+  const handleDeleteBooking = (id: string) => {
+    deleteBookingMutation.mutate(id);
   };
 
   if (isLoading || configLoading) {
@@ -198,10 +486,22 @@ export default function SuperAdminDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="system-config" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="system-config" data-testid="system-config-tab">
               <Settings className="w-4 h-4 mr-2" />
               System Config
+            </TabsTrigger>
+            <TabsTrigger value="teams" data-testid="teams-tab">
+              <Users className="w-4 h-4 mr-2" />
+              Teams
+            </TabsTrigger>
+            <TabsTrigger value="venues" data-testid="venues-tab">
+              <Database className="w-4 h-4 mr-2" />
+              Venues
+            </TabsTrigger>
+            <TabsTrigger value="bookings" data-testid="bookings-tab">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Bookings
             </TabsTrigger>
             <TabsTrigger value="users" data-testid="users-tab">
               <Users className="w-4 h-4 mr-2" />
@@ -408,6 +708,310 @@ export default function SuperAdminDashboard() {
             </Card>
           </TabsContent>
 
+          {/* Teams Management Tab */}
+          <TabsContent value="teams" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="w-5 h-5" />
+                    <span>Teams Management</span>
+                  </CardTitle>
+                  <Button onClick={handleCreateTeam} data-testid="create-team-button">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Team
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {teams.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Country</TableHead>
+                        <TableHead>Sport</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teams.map((team) => (
+                        <TableRow key={team.id}>
+                          <TableCell className="font-medium">{team.name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Flag className="w-4 h-4" />
+                              <span>{team.country?.name || 'N/A'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{team.sport?.name || 'N/A'}</TableCell>
+                          <TableCell className="max-w-xs truncate">{team.description || '-'}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditTeam(team)}
+                                data-testid={`edit-team-${team.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-700"
+                                    data-testid={`delete-team-${team.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Team</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{team.name}"? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteTeam(team.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">No Teams Found</p>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first team to get started.
+                    </p>
+                    <Button onClick={handleCreateTeam}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Team
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Venues Management Tab */}
+          <TabsContent value="venues" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center space-x-2">
+                    <MapPin className="w-5 h-5" />
+                    <span>Venues Management</span>
+                  </CardTitle>
+                  <Button onClick={handleCreateVenue} data-testid="create-venue-button">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Venue
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {venues.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Capacity</TableHead>
+                        <TableHead>Sports</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {venues.map((venue) => (
+                        <TableRow key={venue.id}>
+                          <TableCell className="font-medium">{venue.name}</TableCell>
+                          <TableCell>{venue.location}</TableCell>
+                          <TableCell>{venue.capacity}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {venue.sports?.slice(0, 2).map((sport) => (
+                                <Badge key={sport.id} variant="secondary" className="text-xs">
+                                  {sport.name}
+                                </Badge>
+                              ))}
+                              {venue.sports && venue.sports.length > 2 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{venue.sports.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditVenue(venue)}
+                                data-testid={`edit-venue-${venue.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-700"
+                                    data-testid={`delete-venue-${venue.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Venue</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{venue.name}"? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteVenue(venue.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12">
+                    <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">No Venues Found</p>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first venue to get started.
+                    </p>
+                    <Button onClick={handleCreateVenue}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Venue
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Bookings Management Tab */}
+          <TabsContent value="bookings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Calendar className="w-5 h-5" />
+                  <span>Bookings Management</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {bookings.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Venue</TableHead>
+                        <TableHead>Team</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bookings.map((booking) => (
+                        <TableRow key={booking.id}>
+                          <TableCell className="font-medium">{booking.venue?.name || 'N/A'}</TableCell>
+                          <TableCell>{booking.team?.name || 'N/A'}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div>{new Date(booking.startDateTime).toLocaleDateString()}</div>
+                              <div className="text-muted-foreground">
+                                {new Date(booking.startDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                                {new Date(booking.endDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {Math.round((new Date(booking.endDateTime).getTime() - new Date(booking.startDateTime).getTime()) / (1000 * 60 * 60 * 100)) / 10}h
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}>
+                              {booking.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-700"
+                                    data-testid={`delete-booking-${booking.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this booking? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteBooking(booking.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">No Bookings Found</p>
+                    <p className="text-muted-foreground">
+                      Bookings will appear here once teams start making reservations.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Users Management Tab */}
           <TabsContent value="users">
             <Card>
@@ -479,6 +1083,157 @@ export default function SuperAdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Team Modal */}
+      <Dialog open={teamModalOpen} onOpenChange={setTeamModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{selectedTeam ? 'Edit Team' : 'Create New Team'}</DialogTitle>
+            <DialogDescription>
+              {selectedTeam ? 'Update the team information below.' : 'Fill in the details to create a new team.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="team-name">Team Name</Label>
+              <Input
+                id="team-name"
+                value={teamFormData.name || ''}
+                onChange={(e) => setTeamFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter team name"
+                data-testid="team-name-input"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="team-country">Country</Label>
+                <Select
+                  value={teamFormData.countryId || ''}
+                  onValueChange={(value) => setTeamFormData(prev => ({ ...prev, countryId: value }))}
+                >
+                  <SelectTrigger data-testid="team-country-select">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-sport">Sport</Label>
+                <Select
+                  value={teamFormData.sportId || ''}
+                  onValueChange={(value) => setTeamFormData(prev => ({ ...prev, sportId: value }))}
+                >
+                  <SelectTrigger data-testid="team-sport-select">
+                    <SelectValue placeholder="Select sport" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sports.map((sport) => (
+                      <SelectItem key={sport.id} value={sport.id}>
+                        {sport.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="team-description">Description</Label>
+              <Textarea
+                id="team-description"
+                value={teamFormData.description || ''}
+                onChange={(e) => setTeamFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter team description"
+                rows={3}
+                data-testid="team-description-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTeamModalOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleTeamSubmit}
+              disabled={!teamFormData.name || !teamFormData.countryId || !teamFormData.sportId || createTeamMutation.isPending || updateTeamMutation.isPending}
+              data-testid="team-submit-button"
+            >
+              {selectedTeam ? 'Update Team' : 'Create Team'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Venue Modal */}
+      <Dialog open={venueModalOpen} onOpenChange={setVenueModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{selectedVenue ? 'Edit Venue' : 'Create New Venue'}</DialogTitle>
+            <DialogDescription>
+              {selectedVenue ? 'Update the venue information below.' : 'Fill in the details to create a new venue.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="venue-name">Venue Name</Label>
+                <Input
+                  id="venue-name"
+                  value={venueFormData.name || ''}
+                  onChange={(e) => setVenueFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter venue name"
+                  data-testid="venue-name-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="venue-capacity">Capacity</Label>
+                <Input
+                  id="venue-capacity"
+                  type="number"
+                  value={venueFormData.capacity || ''}
+                  onChange={(e) => setVenueFormData(prev => ({ ...prev, capacity: parseInt(e.target.value) || 0 }))}
+                  placeholder="Enter capacity"
+                  data-testid="venue-capacity-input"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="venue-location">Location</Label>
+              <Input
+                id="venue-location"
+                value={venueFormData.location || ''}
+                onChange={(e) => setVenueFormData(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="Enter venue location"
+                data-testid="venue-location-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="venue-description">Description</Label>
+              <Textarea
+                id="venue-description"
+                value={venueFormData.description || ''}
+                onChange={(e) => setVenueFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter venue description"
+                rows={3}
+                data-testid="venue-description-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVenueModalOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleVenueSubmit}
+              disabled={!venueFormData.name || !venueFormData.location || !venueFormData.capacity || createVenueMutation.isPending || updateVenueMutation.isPending}
+              data-testid="venue-submit-button"
+            >
+              {selectedVenue ? 'Update Venue' : 'Create Venue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
