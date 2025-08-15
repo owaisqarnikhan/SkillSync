@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
-import Navigation from "@/components/Navigation";
+import Sidebar from "@/components/Sidebar";
 import NotFound from "@/pages/not-found";
 import SecureLogin from "@/pages/SecureLogin";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
@@ -45,24 +45,40 @@ function Router() {
     }
   };
 
-  return (
-    <>
-      {isAuthenticated && <Navigation />}
+  if (!isAuthenticated) {
+    return (
       <Switch>
-        {!isAuthenticated ? (
-          <Route path="/" component={SecureLogin} />
-        ) : (
-          <>
-            <Route path="/dashboard" component={getDashboardComponent()} />
+        <Route path="/" component={SecureLogin} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="md:pl-64">
+        <main className="min-h-screen">
+          <Switch>
+            {/* Main Dashboard - shows role-based dashboard */}
             <Route path="/" component={getDashboardComponent()} />
+            
+            {/* Specific Role Dashboards accessed via profile menu */}
+            <Route path="/dashboard/superadmin" component={SuperAdminDashboard} />
+            <Route path="/dashboard/manager" component={ManagerDashboard} />
+            <Route path="/dashboard/user" component={UserDashboard} />
+            
+            {/* Application Pages */}
             <Route path="/bookings" component={Bookings} />
             <Route path="/venues" component={Venues} />
             <Route path="/teams" component={Teams} />
-          </>
-        )}
-        <Route component={NotFound} />
-      </Switch>
-    </>
+            
+            {/* Catch-all */}
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+    </div>
   );
 }
 

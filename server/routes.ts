@@ -421,13 +421,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ message: "Booking conflicts with existing reservations" });
       }
 
-      // Validate 2-hour maximum rule
-      const startTime = new Date(validatedData.startDateTime);
-      const endTime = new Date(validatedData.endDateTime);
-      const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      // Check system configuration for booking duration limits
+      const systemConfig = await storage.getSystemConfig();
+      
+      if (systemConfig?.twoHourLimitEnabled) {
+        const startTime = new Date(validatedData.startDateTime);
+        const endTime = new Date(validatedData.endDateTime);
+        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
 
-      if (durationHours > 2) {
-        return res.status(400).json({ message: "Booking duration cannot exceed 2 hours" });
+        if (durationHours > 2) {
+          return res.status(400).json({ message: "Booking duration cannot exceed 2 hours" });
+        }
       }
 
       const booking = await storage.createBooking(validatedData);

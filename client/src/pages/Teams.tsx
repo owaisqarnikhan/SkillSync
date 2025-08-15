@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select,
   SelectContent,
@@ -13,22 +16,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Users,
   MapPin,
   Trophy,
   User,
   Flag,
-  Search
+  Search,
+  Edit,
+  Trash2,
+  MoreVertical,
+  Plus
 } from "lucide-react";
-import type { TeamWithDetails, Country, Sport } from "@shared/schema";
+import type { TeamWithDetails, Country, Sport, InsertTeam } from "@shared/schema";
 
 export default function Teams() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const queryClient = useQueryClient();
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [sportFilter, setSportFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<TeamWithDetails | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<InsertTeam>>({});
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -60,6 +99,46 @@ export default function Teams() {
     enabled: isAuthenticated,
   });
 
+  // Mutations
+  const updateTeamMutation = useMutation({
+    mutationFn: (data: { id: string; updates: Partial<InsertTeam> }) =>
+      apiRequest("PUT", `/api/teams/${data.id}`, data.updates),
+    onSuccess: () => {
+      toast({
+        title: "Team Updated",
+        description: "Team has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      setEditModalOpen(false);
+      setSelectedTeam(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTeamMutation = useMutation({
+    mutationFn: (teamId: string) => apiRequest("DELETE", `/api/teams/${teamId}`),
+    onSuccess: () => {
+      toast({
+        title: "Team Deleted",
+        description: "Team has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Filter teams based on country, sport, and search term
   const filteredTeams = teams.filter(team => {
     const countryMatch = countryFilter === "all" || team.country.code === countryFilter;
@@ -70,6 +149,45 @@ export default function Teams() {
       team.sport.name.toLowerCase().includes(searchTerm.toLowerCase());
     return countryMatch && sportMatch && searchMatch;
   });
+
+  // Handle edit team
+  const handleEditTeam = (team: TeamWithDetails) => {
+    setSelectedTeam(team);
+    setEditFormData({
+      name: team.name,
+      countryId: team.countryId,
+      sportId: team.sportId,
+      managerId: team.managerId || undefined,
+      memberCount: team.memberCount,
+      description: team.description || '',
+    });
+    setEditModalOpen(true);
+  };
+
+  // Handle delete team
+  const handleDeleteTeam = (teamId: string) => {
+    deleteTeamMutation.mutate(teamId);
+  };
+
+  // Handle save edit
+  const handleSaveEdit = () => {
+    if (!selectedTeam) return;
+    updateTeamMutation.mutate({
+      id: selectedTeam.id,
+      updates: editFormData,
+    });
+  };
+
+  // Check permissions
+  const canEdit = (team: TeamWithDetails) => {
+    if (user?.role === 'superadmin') return true;
+    if (user?.role === 'manager' && team.managerId === user.id) return true;
+    return false;
+  };
+
+  const canDelete = () => {
+    return user?.role === 'superadmin';
+  };
 
   if (isLoading) {
     return (
@@ -245,10 +363,32 @@ export default function Teams() {
                       </Badge>
                       
                       {user?.role !== 'customer' && (
-                        <Button variant="outline" size="sm" className="text-xs sm:text-sm" data-testid={`view-team-${team.id}`}>
-                          <span className="hidden sm:inline">View Details</span>
-                          <span className="sm:hidden">View</span>
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" data-testid={`team-actions-${team.id}`}>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleEditTeam(team)}
+                              disabled={!canEdit(team)}
+                              data-testid={`edit-team-${team.id}`}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Team
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteTeam(team.id)}
+                              disabled={!canDelete()}
+                              className="text-destructive"
+                              data-testid={`delete-team-${team.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Team
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>
@@ -286,6 +426,101 @@ export default function Teams() {
             </CardContent>
           </Card>
         )}
+
+        {/* Edit Team Modal */}
+        <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Team</DialogTitle>
+              <DialogDescription>
+                Make changes to the team information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Team Name</Label>
+                <Input
+                  id="name"
+                  value={editFormData.name || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  data-testid="edit-team-name"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="country">Country</Label>
+                <Select
+                  value={editFormData.countryId || ''}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, countryId: value })}
+                >
+                  <SelectTrigger data-testid="edit-team-country">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="sport">Sport</Label>
+                <Select
+                  value={editFormData.sportId || ''}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, sportId: value })}
+                >
+                  <SelectTrigger data-testid="edit-team-sport">
+                    <SelectValue placeholder="Select sport" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sports.map((sport) => (
+                      <SelectItem key={sport.id} value={sport.id}>
+                        {sport.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="memberCount">Member Count</Label>
+                <Input
+                  id="memberCount"
+                  type="number"
+                  min="1"
+                  value={editFormData.memberCount || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, memberCount: parseInt(e.target.value) || 0 })}
+                  data-testid="edit-team-member-count"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={editFormData.description || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  data-testid="edit-team-description"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setEditModalOpen(false)}
+                data-testid="cancel-edit-team"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={updateTeamMutation.isPending}
+                data-testid="save-edit-team"
+              >
+                {updateTeamMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

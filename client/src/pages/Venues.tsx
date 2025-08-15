@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select,
   SelectContent,
@@ -13,6 +16,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   MapPin,
   Users,
@@ -22,9 +39,12 @@ import {
   CircleDot,
   Activity,
   Dumbbell,
-  Calendar
+  Calendar,
+  Edit,
+  Trash2,
+  MoreVertical
 } from "lucide-react";
-import type { VenueWithDetails, BookingWithDetails } from "@shared/schema";
+import type { VenueWithDetails, BookingWithDetails, InsertVenue } from "@shared/schema";
 import BookingModal from "@/components/BookingModal";
 import { format, startOfDay, endOfDay } from "date-fns";
 
@@ -54,11 +74,17 @@ const venueTypeLabels = {
 
 export default function Venues() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const queryClient = useQueryClient();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedVenueId, setSelectedVenueId] = useState<string>();
+  
+  // Modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedVenue, setSelectedVenue] = useState<VenueWithDetails | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<InsertVenue>>({});
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -87,6 +113,46 @@ export default function Venues() {
       endDate: format(endOfDay(today), "yyyy-MM-dd"),
     }],
     enabled: isAuthenticated,
+  });
+
+  // Mutations
+  const updateVenueMutation = useMutation({
+    mutationFn: (data: { id: string; updates: Partial<InsertVenue> }) =>
+      apiRequest("PUT", `/api/venues/${data.id}`, data.updates),
+    onSuccess: () => {
+      toast({
+        title: "Venue Updated",
+        description: "Venue has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/venues"] });
+      setEditModalOpen(false);
+      setSelectedVenue(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteVenueMutation = useMutation({
+    mutationFn: (venueId: string) => apiRequest("DELETE", `/api/venues/${venueId}`),
+    onSuccess: () => {
+      toast({
+        title: "Venue Deleted",
+        description: "Venue has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/venues"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const getVenueAvailability = (venue: VenueWithDetails) => {
@@ -127,6 +193,48 @@ export default function Venues() {
   const handleBookVenue = (venueId: string) => {
     setSelectedVenueId(venueId);
     setBookingModalOpen(true);
+  };
+
+  // Handle edit venue
+  const handleEditVenue = (venue: VenueWithDetails) => {
+    setSelectedVenue(venue);
+    setEditFormData({
+      name: venue.name,
+      type: venue.type,
+      location: venue.location || '',
+      capacity: venue.capacity,
+      description: venue.description || '',
+      amenities: venue.amenities || [],
+      workingStartTime: venue.workingStartTime,
+      workingEndTime: venue.workingEndTime,
+      bufferTimeMinutes: venue.bufferTimeMinutes,
+    });
+    setEditModalOpen(true);
+  };
+
+  // Handle delete venue
+  const handleDeleteVenue = (venueId: string) => {
+    deleteVenueMutation.mutate(venueId);
+  };
+
+  // Handle save edit
+  const handleSaveEdit = () => {
+    if (!selectedVenue) return;
+    updateVenueMutation.mutate({
+      id: selectedVenue.id,
+      updates: editFormData,
+    });
+  };
+
+  // Check permissions
+  const canEdit = (venue: VenueWithDetails) => {
+    if (user?.role === 'superadmin') return true;
+    if (user?.role === 'manager' && venue.managerId === user.id) return true;
+    return false;
+  };
+
+  const canDelete = () => {
+    return user?.role === 'superadmin';
   };
 
   if (isLoading) {
@@ -293,9 +401,9 @@ export default function Venues() {
                         </div>
                       )}
 
-                      <div className="pt-2 border-t">
+                      <div className="pt-2 border-t flex gap-2">
                         <Button 
-                          className="w-full" 
+                          className="flex-1" 
                           onClick={() => handleBookVenue(venue.id)}
                           disabled={availability.status === 'booked'}
                           data-testid={`book-venue-${venue.id}`}
@@ -303,6 +411,35 @@ export default function Venues() {
                           <Calendar className="w-4 h-4 mr-2" />
                           {availability.status === 'booked' ? 'Fully Booked' : 'Book Now'}
                         </Button>
+                        
+                        {user?.role !== 'customer' && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" data-testid={`venue-actions-${venue.id}`}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleEditVenue(venue)}
+                                disabled={!canEdit(venue)}
+                                data-testid={`edit-venue-${venue.id}`}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Venue
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteVenue(venue.id)}
+                                disabled={!canDelete()}
+                                className="text-destructive"
+                                data-testid={`delete-venue-${venue.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Venue
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -318,6 +455,118 @@ export default function Venues() {
           onOpenChange={setBookingModalOpen}
           selectedVenueId={selectedVenueId}
         />
+
+        {/* Edit Venue Modal */}
+        <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Venue</DialogTitle>
+              <DialogDescription>
+                Make changes to the venue information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Venue Name</Label>
+                <Input
+                  id="name"
+                  value={editFormData.name || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  data-testid="edit-venue-name"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="type">Venue Type</Label>
+                <Select
+                  value={editFormData.type || ''}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, type: value as any })}
+                >
+                  <SelectTrigger data-testid="edit-venue-type">
+                    <SelectValue placeholder="Select venue type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="swimming_pool">Swimming Pool</SelectItem>
+                    <SelectItem value="athletics_track">Athletics Track</SelectItem>
+                    <SelectItem value="basketball_court">Basketball Court</SelectItem>
+                    <SelectItem value="volleyball_court">Volleyball Court</SelectItem>
+                    <SelectItem value="badminton_hall">Badminton Hall</SelectItem>
+                    <SelectItem value="tennis_court">Tennis Court</SelectItem>
+                    <SelectItem value="football_field">Football Field</SelectItem>
+                    <SelectItem value="gym">Gymnasium</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={editFormData.location || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                  data-testid="edit-venue-location"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="capacity">Capacity</Label>
+                <Input
+                  id="capacity"
+                  type="number"
+                  min="1"
+                  value={editFormData.capacity || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, capacity: parseInt(e.target.value) || 0 })}
+                  data-testid="edit-venue-capacity"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="workingStartTime">Start Time</Label>
+                  <Input
+                    id="workingStartTime"
+                    type="time"
+                    value={editFormData.workingStartTime || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, workingStartTime: e.target.value })}
+                    data-testid="edit-venue-start-time"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="workingEndTime">End Time</Label>
+                  <Input
+                    id="workingEndTime"
+                    type="time"
+                    value={editFormData.workingEndTime || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, workingEndTime: e.target.value })}
+                    data-testid="edit-venue-end-time"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={editFormData.description || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  data-testid="edit-venue-description"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setEditModalOpen(false)}
+                data-testid="cancel-edit-venue"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={updateVenueMutation.isPending}
+                data-testid="save-edit-venue"
+              >
+                {updateVenueMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

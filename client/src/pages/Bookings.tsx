@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select,
   SelectContent,
@@ -15,6 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +36,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Calendar,
   MapPin,
@@ -35,10 +51,12 @@ import {
   XCircle,
   AlertCircle,
   MoreVertical,
-  Filter
+  Filter,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import type { BookingWithDetails } from "@shared/schema";
+import type { BookingWithDetails, VenueWithDetails, TeamWithDetails } from "@shared/schema";
 import BookingModal from "@/components/BookingModal";
 
 const statusConfig = {
@@ -52,11 +70,23 @@ const statusConfig = {
 
 export default function Bookings() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  
+  // Edit modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    startDateTime: string;
+    endDateTime: string;
+    participantCount: number;
+    specialRequirements: string;
+    status?: string;
+    denialReason?: string;
+  }>({} as any);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -78,6 +108,16 @@ export default function Bookings() {
     enabled: isAuthenticated,
   });
 
+  const { data: venues = [] } = useQuery<VenueWithDetails[]>({
+    queryKey: ["/api/venues"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: teams = [] } = useQuery<TeamWithDetails[]>({
+    queryKey: ["/api/teams"],
+    enabled: isAuthenticated,
+  });
+
   const cancelBookingMutation = useMutation({
     mutationFn: (bookingId: string) => 
       apiRequest("PUT", `/api/bookings/${bookingId}`, { status: "cancelled" }),
@@ -85,6 +125,69 @@ export default function Bookings() {
       toast({
         title: "Booking Cancelled",
         description: "Your booking has been cancelled successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateBookingMutation = useMutation({
+    mutationFn: (data: { id: string; updates: any }) =>
+      apiRequest("PUT", `/api/bookings/${data.id}`, data.updates),
+    onSuccess: () => {
+      toast({
+        title: "Booking Updated",
+        description: "Booking has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      setEditModalOpen(false);
+      setSelectedBooking(null);
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteBookingMutation = useMutation({
+    mutationFn: (bookingId: string) => apiRequest("DELETE", `/api/bookings/${bookingId}`),
+    onSuccess: () => {
+      toast({
+        title: "Booking Deleted",
+        description: "Booking has been deleted permanently.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
@@ -120,6 +223,64 @@ export default function Bookings() {
 
   const handleCancelBooking = (bookingId: string) => {
     cancelBookingMutation.mutate(bookingId);
+  };
+
+  // Handle edit booking
+  const handleEditBooking = (booking: BookingWithDetails) => {
+    setSelectedBooking(booking);
+    setEditFormData({
+      startDateTime: format(parseISO(booking.startDateTime), "yyyy-MM-dd'T'HH:mm"),
+      endDateTime: format(parseISO(booking.endDateTime), "yyyy-MM-dd'T'HH:mm"),
+      participantCount: booking.participantCount,
+      specialRequirements: booking.specialRequirements || '',
+      status: booking.status,
+      denialReason: booking.denialReason || '',
+    });
+    setEditModalOpen(true);
+  };
+
+  // Handle delete booking
+  const handleDeleteBooking = (bookingId: string) => {
+    deleteBookingMutation.mutate(bookingId);
+  };
+
+  // Handle save edit
+  const handleSaveEdit = () => {
+    if (!selectedBooking) return;
+    const updates = {
+      startDateTime: editFormData.startDateTime,
+      endDateTime: editFormData.endDateTime,
+      participantCount: editFormData.participantCount,
+      specialRequirements: editFormData.specialRequirements,
+    };
+    
+    // Add admin/manager only fields
+    if (user?.role !== 'customer') {
+      (updates as any).status = editFormData.status;
+      if (editFormData.status === 'denied' && editFormData.denialReason) {
+        (updates as any).denialReason = editFormData.denialReason;
+      }
+    }
+    
+    updateBookingMutation.mutate({
+      id: selectedBooking.id,
+      updates,
+    });
+  };
+
+  // Check permissions
+  const canEdit = (booking: BookingWithDetails) => {
+    if (user?.role === 'superadmin') return true;
+    if (user?.role === 'manager') return true;
+    if (user?.role === 'customer' && booking.requesterId === user.id && 
+        ['requested', 'pending'].includes(booking.status)) return true;
+    return false;
+  };
+
+  const canDelete = (booking: BookingWithDetails) => {
+    if (user?.role === 'superadmin') return true;
+    if (user?.role === 'manager') return true;
+    return false;
   };
 
   if (isLoading) {
@@ -319,6 +480,37 @@ export default function Bookings() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
+                        
+                        {(canEdit(booking) || canDelete(booking)) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" data-testid={`booking-actions-${booking.id}`}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {canEdit(booking) && (
+                                <DropdownMenuItem
+                                  onClick={() => handleEditBooking(booking)}
+                                  data-testid={`edit-booking-${booking.id}`}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Booking
+                                </DropdownMenuItem>
+                              )}
+                              {canDelete(booking) && (
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteBooking(booking.id)}
+                                  className="text-destructive"
+                                  data-testid={`delete-booking-${booking.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Booking
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -333,6 +525,128 @@ export default function Bookings() {
           isOpen={bookingModalOpen}
           onOpenChange={setBookingModalOpen}
         />
+
+        {/* Edit Booking Modal */}
+        <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Booking</DialogTitle>
+              <DialogDescription>
+                Make changes to the booking details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+              {selectedBooking && (
+                <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedBooking.venue.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {selectedBooking.team.name} • {selectedBooking.team.country.name}
+                  </p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="startDateTime">Start Date & Time</Label>
+                  <Input
+                    id="startDateTime"
+                    type="datetime-local"
+                    value={editFormData.startDateTime || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, startDateTime: e.target.value })}
+                    data-testid="edit-booking-start"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="endDateTime">End Date & Time</Label>
+                  <Input
+                    id="endDateTime"
+                    type="datetime-local"
+                    value={editFormData.endDateTime || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, endDateTime: e.target.value })}
+                    data-testid="edit-booking-end"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="participantCount">Participant Count</Label>
+                <Input
+                  id="participantCount"
+                  type="number"
+                  min="1"
+                  value={editFormData.participantCount || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, participantCount: parseInt(e.target.value) || 0 })}
+                  data-testid="edit-booking-participants"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="specialRequirements">Special Requirements</Label>
+                <Textarea
+                  id="specialRequirements"
+                  value={editFormData.specialRequirements || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, specialRequirements: e.target.value })}
+                  data-testid="edit-booking-requirements"
+                />
+              </div>
+              
+              {/* Admin/Manager only fields */}
+              {user?.role !== 'customer' && (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={editFormData.status || ''}
+                      onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+                    >
+                      <SelectTrigger data-testid="edit-booking-status">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="requested">Requested</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="denied">Denied</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {editFormData.status === 'denied' && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="denialReason">Denial Reason</Label>
+                      <Textarea
+                        id="denialReason"
+                        value={editFormData.denialReason || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, denialReason: e.target.value })}
+                        data-testid="edit-booking-denial-reason"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setEditModalOpen(false)}
+                data-testid="cancel-edit-booking"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={updateBookingMutation.isPending}
+                data-testid="save-edit-booking"
+              >
+                {updateBookingMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
