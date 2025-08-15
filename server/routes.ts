@@ -49,6 +49,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default users
   const { initializeDefaultUsers } = await import('./init-users');
   await initializeDefaultUsers();
+  
+  // Initialize base data (countries and sports)
+  const { initializeBaseData } = await import('./init-data');
+  await initializeBaseData();
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
