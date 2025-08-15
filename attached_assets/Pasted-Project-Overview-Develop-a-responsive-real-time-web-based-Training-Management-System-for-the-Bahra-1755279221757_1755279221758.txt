@@ -1,0 +1,138 @@
+Project Overview
+Develop a responsive, real-time, web-based Training Management System for the Bahrain Asian Youth Games 2025, enabling national teams to efficiently and securely book training venues. The system supports three user roles—SuperAdmin, Manager/Admin, and Customer/User—and ensures seamless, conflict-free reservations within defined rules. The interface is accessible across desktop, tablet, and mobile.
+
+Key Features & Enhancements
+
+Role-Based Access Control (RBAC)
+
+SuperAdmin: configure countries, teams, venues, users; define scheduling rules; set system-wide settings; oversee audit logs.
+
+Manager: manage bookings for assigned venues or teams; approve/decline requests; view real-time request queues and booking heatmaps.
+
+Customer/User: search for venues; request bookings (max 2 hours); manage their team's bookings; receive notifications and queue status updates.
+
+Booking Rules & Conflict Avoidance
+
+Enforce a two-hour maximum booking limit per session.
+
+Use PostgreSQL exclusion constraints—or appropriate database-level locks—to prevent overlapping bookings.
+
+Respect venue-specific working hours, blackout periods, and mandatory buffer times between sessions.
+
+Support real-time queuing, with visible queue positions and estimated wait times.
+
+Live Interface & Calendar View
+
+Calendar Views: day/week/month with drag-and-drop slot creation; switch to compact 'list' or 'agenda' view on mobile.
+
+Visual Indicators: lock slots when pending or booked; use distinct color codes per team, per status (requested, approved, denied, in-queue).
+
+Real-Time Updates: broadcasting using Socket.IO (or equivalent) so new, updated, or canceled bookings reflect instantly across users' UIs.
+
+Notifications System
+
+Send email notifications for booking confirmations, updates, denials, cancellations, and upcoming session reminders (e.g. 10 minutes before end).
+
+Support multiple providers such as SendGrid and AWS SES.
+
+Implement job scheduling and queuing (e.g., via Redis + BullMQ or an equivalent) to manage notification dispatch reliably and at scale.
+
+Security & Compliance
+
+Use JWT for authentication and strong RBAC for authorization.
+
+Hash passwords securely (bcrypt or similar), enable HTTPS by default, perform input validation & sanitization, and enforce rate limiting.
+
+Maintain detailed audit logs of user actions—booking changes, approvals, deletions—for accountability and traceability.
+
+Comply with relevant data protection and privacy regulations, including user data storage and access controls.
+
+Operational Resilience & Monitoring
+
+Implement comprehensive error handling and graceful failure modes.
+
+Enable application logging (structured) and health-check endpoints.
+
+Incorporate performance monitoring tools (e.g., for latency, throughput, error rates) and error alerting systems.
+
+Accessibility & UX
+
+Ensure UI accessibility (WCAG 2.1 AA): keyboard navigation, screen reader compatibility, sufficient color contrast, and clear focus indicators.
+
+Design layouts for touch-friendly interactions on mobile.
+
+Provide clear feedback on actions—booking successes, errors, queue updates—with helpful messaging.
+
+Internationalization & Time Zones
+
+Display all dates and times in the user’s local timezone, with clear venue-specific time information.
+
+Support localization—at minimum English and Arabic—especially for UI texts, date formats, and notifications.
+
+Scalability & Extensibility
+
+Architect for growth—potential for multi-event support or expansion beyond the Games.
+
+Design APIs with RESTful principles; enable future integrations (e.g., with athlete profiles, payment systems, third-party dashboards).
+
+Build with modular design to allow extension of features like blocking special events or managing equipment bookings.
+
+Admin Dashboard & Analytics
+
+Provide SuperAdmins with dashboards that include calendar heatmaps, slot utilization, booking statistics per team or venue, and system alerts (e.g., conflicts, kernel queues getting long).
+
+Include log-viewing and audit tracing tools.
+
+Documentation & Testing
+
+Write comprehensive documentation: API contracts, user guides per role, deployment instructions.
+
+Develop and automate unit tests, integration tests, and end-to-end tests—including booking flows, conflict scenarios, notification scheduling, and RESTful endpoint validation.
+
+Suggested Development Plan
+
+Project Setup & Core Architecture
+
+Initialize project structure (frontend + backend), CI/CD pipelines, and development environments.
+
+Establish basic authentication, RBAC frameworks, and request routing.
+
+Database & Booking Logic
+
+Model core entities: Users, Teams, Venues, Bookings, BookingRules, Notifications, AuditLogs.
+
+Implement booking constraints, queue logic, and working hours enforcement.
+
+Booking UI & Calendar Integration
+
+Build calendar interface with color-coded slot statuses and mobile-responsive views.
+
+Integrate real-time updates via WebSockets.
+
+Notifications & Background Jobs
+
+Implement email workflows with templating and scheduling; integrate with BullMQ or similar.
+
+Ensure reminder emails are sent reliably.
+
+Admin & Manager Interfaces
+
+Design dashboards for booking oversight, rule configuration, audit log review, and statistical reporting.
+
+Security Hardening & Compliance Checks
+
+Finalize secure authentication/authorization.
+
+Add rate limiting, input validation, and logging.
+
+Testing & Quality Assurance
+
+Deploy full test suite; conduct user acceptance tests across roles and devices.
+
+Perform security reviews and accessibility audits.
+
+Documentation & Handoff
+
+Prepare all technical documentation, deployment guides, and user manuals.
+
+Provide Replit-compatible deployment scripts or templates for easy self-hosting.
