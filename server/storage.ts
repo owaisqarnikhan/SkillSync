@@ -1,6 +1,7 @@
 import {
   users,
   countries,
+  sports,
   teams,
   venues,
   bookings,
@@ -13,6 +14,8 @@ import {
   type UpsertUser,
   type Country,
   type InsertCountry,
+  type Sport,
+  type InsertSport,
   type Team,
   type InsertTeam,
   type TeamWithDetails,
@@ -49,9 +52,10 @@ export interface IStorage {
   
   // Country operations
   getCountries(): Promise<Country[]>;
+  getCountry(id: string): Promise<Country | undefined>;
   createCountry(country: InsertCountry): Promise<Country>;
-  
-  // Sport operations removed - teams are now standalone
+  updateCountry(id: string, updates: Partial<InsertCountry>): Promise<Country>;
+  deleteCountry(id: string): Promise<void>;
   
   // Team operations
   getTeams(countryCode?: string): Promise<TeamWithDetails[]>;
@@ -59,6 +63,13 @@ export interface IStorage {
   createTeam(team: InsertTeam): Promise<Team>;
   updateTeam(id: string, updates: Partial<InsertTeam>): Promise<Team>;
   deleteTeam(id: string): Promise<void>;
+  
+  // Sports operations
+  getSports(isActive?: boolean): Promise<Sport[]>;
+  getSport(id: string): Promise<Sport | undefined>;
+  createSport(sport: InsertSport): Promise<Sport>;
+  updateSport(id: string, updates: Partial<InsertSport>): Promise<Sport>;
+  deleteSport(id: string): Promise<void>;
   
   // Venue operations
   getVenues(isActive?: boolean): Promise<VenueWithDetails[]>;
@@ -179,6 +190,56 @@ export class DatabaseStorage implements IStorage {
   async createCountry(country: InsertCountry): Promise<Country> {
     const [newCountry] = await db.insert(countries).values(country).returning();
     return newCountry;
+  }
+
+  async getCountry(id: string): Promise<Country | undefined> {
+    const [country] = await db.select().from(countries).where(eq(countries.id, id));
+    return country;
+  }
+
+  async updateCountry(id: string, updates: Partial<InsertCountry>): Promise<Country> {
+    const [updated] = await db
+      .update(countries)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(countries.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCountry(id: string): Promise<void> {
+    await db.delete(countries).where(eq(countries.id, id));
+  }
+
+  // Sports operations
+  async getSports(isActive?: boolean): Promise<Sport[]> {
+    const query = db.select().from(sports);
+    if (isActive !== undefined) {
+      query.where(eq(sports.isActive, isActive));
+    }
+    return await query.orderBy(asc(sports.name));
+  }
+
+  async getSport(id: string): Promise<Sport | undefined> {
+    const [sport] = await db.select().from(sports).where(eq(sports.id, id));
+    return sport;
+  }
+
+  async createSport(sport: InsertSport): Promise<Sport> {
+    const [newSport] = await db.insert(sports).values(sport).returning();
+    return newSport;
+  }
+
+  async updateSport(id: string, updates: Partial<InsertSport>): Promise<Sport> {
+    const [updated] = await db
+      .update(sports)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(sports.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSport(id: string): Promise<void> {
+    await db.delete(sports).where(eq(sports.id, id));
   }
 
   // Sport operations removed - teams are now standalone

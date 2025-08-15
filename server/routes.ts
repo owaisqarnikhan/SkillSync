@@ -10,6 +10,9 @@ import {
   insertCountrySchema,
   insertNotificationSchema,
   insertAuditLogSchema,
+  insertSportSchema,
+  type Sport,
+  type InsertSport,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -108,6 +111,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create country" });
+    }
+  });
+
+  app.put('/api/countries/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const validatedData = insertCountrySchema.partial().parse(req.body);
+      const country = await storage.updateCountry(req.params.id, validatedData);
+      
+      await createAuditLog(req, 'UPDATE', 'country', country.id, null, validatedData);
+      
+      res.json(country);
+    } catch (error) {
+      console.error("Error updating country:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update country" });
+    }
+  });
+
+  app.delete('/api/countries/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteCountry(req.params.id);
+      
+      await createAuditLog(req, 'DELETE', 'country', req.params.id, null, null);
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting country:", error);
+      res.status(500).json({ message: "Failed to delete country" });
+    }
+  });
+
+  // Sports routes
+  app.get('/api/sports', isAuthenticated, async (req, res) => {
+    try {
+      const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
+      const sports = await storage.getSports(isActive);
+      res.json(sports);
+    } catch (error) {
+      console.error("Error fetching sports:", error);
+      res.status(500).json({ message: "Failed to fetch sports" });
+    }
+  });
+
+  app.post('/api/sports', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const validatedData = insertSportSchema.parse(req.body);
+      const sport = await storage.createSport(validatedData);
+      
+      await createAuditLog(req, 'CREATE', 'sport', sport.id, null, validatedData);
+      
+      res.status(201).json(sport);
+    } catch (error) {
+      console.error("Error creating sport:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create sport" });
+    }
+  });
+
+  app.put('/api/sports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const validatedData = insertSportSchema.partial().parse(req.body);
+      const sport = await storage.updateSport(req.params.id, validatedData);
+      
+      await createAuditLog(req, 'UPDATE', 'sport', sport.id, null, validatedData);
+      
+      res.json(sport);
+    } catch (error) {
+      console.error("Error updating sport:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update sport" });
+    }
+  });
+
+  app.delete('/api/sports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteSport(req.params.id);
+      
+      await createAuditLog(req, 'DELETE', 'sport', req.params.id, null, null);
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting sport:", error);
+      res.status(500).json({ message: "Failed to delete sport" });
     }
   });
 

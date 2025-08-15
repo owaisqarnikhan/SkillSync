@@ -56,7 +56,16 @@ export const countries = pgTable("countries", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Sports/Disciplines - REMOVED: Teams are now standalone
+// Sports table for centralized sports management
+export const sports = pgTable("sports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  category: varchar("category", { length: 50 }), // e.g., "Aquatics", "Athletics"
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 // Teams table (standalone - no sports dependency)
 export const teams = pgTable("teams", {
@@ -314,7 +323,12 @@ export const insertCountrySchema = createInsertSchema(countries).omit({
   updatedAt: true,
 });
 
-// insertSportSchema removed - sports table no longer exists
+// Sport schemas
+export const insertSportSchema = createInsertSchema(sports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export const insertTeamSchema = createInsertSchema(teams).omit({
   id: true,
@@ -374,7 +388,7 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Country = typeof countries.$inferSelect;
-// Sport type removed - sports table no longer exists
+export type Sport = typeof sports.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
@@ -386,7 +400,7 @@ export type DashboardPermission = typeof dashboardPermissions.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCountry = z.infer<typeof insertCountrySchema>;
-// InsertSport type removed - sports table no longer exists
+export type InsertSport = z.infer<typeof insertSportSchema>;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type InsertVenue = z.infer<typeof insertVenueSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;

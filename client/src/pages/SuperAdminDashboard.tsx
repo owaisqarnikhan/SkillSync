@@ -66,9 +66,10 @@ import {
   Trash2,
   Calendar,
   MapPin,
-  Flag
+  Flag,
+  Trophy
 } from "lucide-react";
-import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, InsertTeam, InsertVenue } from "@shared/schema";
+import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, InsertTeam, InsertVenue, InsertSport, InsertCountry } from "@shared/schema";
 
 interface UserFormData {
   username?: string;
@@ -101,6 +102,16 @@ export default function SuperAdminDashboard() {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userFormData, setUserFormData] = useState<UserFormData>({});
+  
+  // Sports management state
+  const [sportsModalOpen, setSportsModalOpen] = useState(false);
+  const [selectedSport, setSelectedSport] = useState<Sport | null>(null);
+  const [sportsFormData, setSportsFormData] = useState<Partial<InsertSport>>({});
+  
+  // Countries management state
+  const [countryModalOpen, setCountryModalOpen] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [countryFormData, setCountryFormData] = useState<Partial<InsertCountry>>({});
 
   // Redirect if not SuperAdmin
   useEffect(() => {
@@ -156,7 +167,10 @@ export default function SuperAdminDashboard() {
     enabled: isAuthenticated && user?.role === 'superadmin',
   });
   
-  // Sports query removed - teams now store sport as string field directly
+  const { data: sports = [] } = useQuery<Sport[]>({
+    queryKey: ["/api/sports"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
   
   const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -469,6 +483,116 @@ export default function SuperAdminDashboard() {
     },
   });
 
+  // Sports CRUD mutations
+  const createSportMutation = useMutation({
+    mutationFn: (data: InsertSport) => apiRequest("POST", "/api/sports", data),
+    onSuccess: () => {
+      toast({ title: "Sport Created", description: "Sport has been created successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/sports"] });
+      setSportsModalOpen(false);
+      setSportsFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const updateSportMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertSport> }) => 
+      apiRequest("PUT", `/api/sports/${id}`, data),
+    onSuccess: () => {
+      toast({ title: "Sport Updated", description: "Sport has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/sports"] });
+      setSportsModalOpen(false);
+      setSelectedSport(null);
+      setSportsFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deleteSportMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/sports/${id}`),
+    onSuccess: () => {
+      toast({ title: "Sport Deleted", description: "Sport has been deleted successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/sports"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Countries CRUD mutations  
+  const createCountryMutation = useMutation({
+    mutationFn: (data: InsertCountry) => apiRequest("POST", "/api/countries", data),
+    onSuccess: () => {
+      toast({ title: "Country Created", description: "Country has been created successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/countries"] });
+      setCountryModalOpen(false);
+      setCountryFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const updateCountryMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertCountry> }) => 
+      apiRequest("PUT", `/api/countries/${id}`, data),
+    onSuccess: () => {
+      toast({ title: "Country Updated", description: "Country has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/countries"] });
+      setCountryModalOpen(false);
+      setSelectedCountry(null);
+      setCountryFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deleteCountryMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/countries/${id}`),
+    onSuccess: () => {
+      toast({ title: "Country Deleted", description: "Country has been deleted successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/countries"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // User handlers
   const handleCreateUser = () => {
     setSelectedUser(null);
@@ -502,6 +626,64 @@ export default function SuperAdminDashboard() {
 
   const handleDeleteUser = (id: string) => {
     deleteUserMutation.mutate(id);
+  };
+
+  // Sports handlers
+  const handleCreateSport = () => {
+    setSelectedSport(null);
+    setSportsFormData({});
+    setSportsModalOpen(true);
+  };
+
+  const handleEditSport = (sport: Sport) => {
+    setSelectedSport(sport);
+    setSportsFormData({
+      name: sport.name,
+      category: sport.category || '',
+      description: sport.description || '',
+    });
+    setSportsModalOpen(true);
+  };
+
+  const handleSportSubmit = () => {
+    if (selectedSport) {
+      updateSportMutation.mutate({ id: selectedSport.id, data: sportsFormData });
+    } else {
+      createSportMutation.mutate(sportsFormData as InsertSport);
+    }
+  };
+
+  const handleDeleteSport = (id: string) => {
+    deleteSportMutation.mutate(id);
+  };
+
+  // Countries handlers
+  const handleCreateCountry = () => {
+    setSelectedCountry(null);
+    setCountryFormData({});
+    setCountryModalOpen(true);
+  };
+
+  const handleEditCountry = (country: Country) => {
+    setSelectedCountry(country);
+    setCountryFormData({
+      name: country.name,
+      code: country.code,
+      flagUrl: country.flagUrl || '',
+    });
+    setCountryModalOpen(true);
+  };
+
+  const handleCountrySubmit = () => {
+    if (selectedCountry) {
+      updateCountryMutation.mutate({ id: selectedCountry.id, data: countryFormData });
+    } else {
+      createCountryMutation.mutate(countryFormData as InsertCountry);
+    }
+  };
+
+  const handleDeleteCountry = (id: string) => {
+    deleteCountryMutation.mutate(id);
   };
 
   if (isLoading || configLoading) {
@@ -594,7 +776,7 @@ export default function SuperAdminDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="system-config" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1 h-auto p-1">
             <TabsTrigger value="system-config" data-testid="system-config-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <Settings className="w-4 h-4 flex-shrink-0" />
               <span className="truncate text-xs sm:text-sm">Config</span>
@@ -622,6 +804,14 @@ export default function SuperAdminDashboard() {
             <TabsTrigger value="audit" data-testid="audit-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <FileText className="w-4 h-4 flex-shrink-0" />
               <span className="truncate text-xs sm:text-sm">Audit</span>
+            </TabsTrigger>
+            <TabsTrigger value="sports" data-testid="sports-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Trophy className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Sports</span>
+            </TabsTrigger>
+            <TabsTrigger value="countries" data-testid="countries-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Flag className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Countries</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1282,6 +1472,210 @@ export default function SuperAdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Sports Management Tab */}
+          <TabsContent value="sports" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Trophy className="w-5 h-5" />
+                    <span>Sports Management</span>
+                  </div>
+                  <Button onClick={handleCreateSport} data-testid="create-sport-button">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Sport
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sports.map((sport) => (
+                        <TableRow key={sport.id} data-testid={`sport-row-${sport.id}`}>
+                          <TableCell className="font-medium">{sport.name}</TableCell>
+                          <TableCell>{sport.category || 'N/A'}</TableCell>
+                          <TableCell className="max-w-xs truncate">{sport.description || 'N/A'}</TableCell>
+                          <TableCell>
+                            <Badge variant={sport.isActive ? "default" : "secondary"}>
+                              {sport.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditSport(sport)}
+                                data-testid={`edit-sport-${sport.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-testid={`delete-sport-${sport.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Sport</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{sport.name}"? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteSport(sport.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {sports.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-lg font-medium text-gray-900 mb-2">No Sports Found</p>
+                            <p className="text-muted-foreground mb-4">
+                              Start by creating your first sport category.
+                            </p>
+                            <Button onClick={handleCreateSport}>
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add Sport
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Countries Management Tab */}
+          <TabsContent value="countries" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Flag className="w-5 h-5" />
+                    <span>Countries Management</span>
+                  </div>
+                  <Button onClick={handleCreateCountry} data-testid="create-country-button">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Country
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Flag</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {countries.map((country) => (
+                        <TableRow key={country.id} data-testid={`country-row-${country.id}`}>
+                          <TableCell className="font-medium">{country.name}</TableCell>
+                          <TableCell>{country.code}</TableCell>
+                          <TableCell>
+                            {country.flagUrl ? (
+                              <img src={country.flagUrl} alt={`${country.name} flag`} className="w-8 h-6 object-cover rounded" />
+                            ) : (
+                              <span className="text-muted-foreground">No flag</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={country.isActive ? "default" : "secondary"}>
+                              {country.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditCountry(country)}
+                                data-testid={`edit-country-${country.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-testid={`delete-country-${country.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Country</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{country.name}"? This action cannot be undone and may affect existing teams.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteCountry(country.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {countries.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            <Flag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-lg font-medium text-gray-900 mb-2">No Countries Found</p>
+                            <p className="text-muted-foreground mb-4">
+                              Start by creating your first country.
+                            </p>
+                            <Button onClick={handleCreateCountry}>
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add Country
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1570,6 +1964,121 @@ export default function SuperAdminDashboard() {
               data-testid="user-submit-button"
             >
               {selectedUser ? 'Update User' : 'Create User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sports Modal */}
+      <Dialog open={sportsModalOpen} onOpenChange={setSportsModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{selectedSport ? 'Edit Sport' : 'Create New Sport'}</DialogTitle>
+            <DialogDescription>
+              {selectedSport ? 'Update the sport information below.' : 'Fill in the details to create a new sport.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="sport-name">Sport Name *</Label>
+              <Input
+                id="sport-name"
+                value={sportsFormData.name || ''}
+                onChange={(e) => setSportsFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter sport name"
+                data-testid="sport-name-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sport-category">Category</Label>
+              <Input
+                id="sport-category"
+                value={sportsFormData.category || ''}
+                onChange={(e) => setSportsFormData(prev => ({ ...prev, category: e.target.value }))}
+                placeholder="e.g., Aquatics, Athletics"
+                data-testid="sport-category-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sport-description">Description</Label>
+              <Textarea
+                id="sport-description"
+                value={sportsFormData.description || ''}
+                onChange={(e) => setSportsFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter sport description"
+                data-testid="sport-description-input"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSportsModalOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSportSubmit}
+              disabled={!sportsFormData.name || createSportMutation.isPending || updateSportMutation.isPending}
+              data-testid="sport-submit-button"
+            >
+              {selectedSport ? 'Update Sport' : 'Create Sport'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Countries Modal */}
+      <Dialog open={countryModalOpen} onOpenChange={setCountryModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{selectedCountry ? 'Edit Country' : 'Create New Country'}</DialogTitle>
+            <DialogDescription>
+              {selectedCountry ? 'Update the country information below.' : 'Fill in the details to create a new country.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="country-name">Country Name *</Label>
+              <Input
+                id="country-name"
+                value={countryFormData.name || ''}
+                onChange={(e) => setCountryFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter country name"
+                data-testid="country-name-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country-code">Country Code *</Label>
+              <Input
+                id="country-code"
+                value={countryFormData.code || ''}
+                onChange={(e) => setCountryFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                placeholder="e.g., BHR, USA"
+                maxLength={3}
+                data-testid="country-code-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country-flag">Flag URL</Label>
+              <Input
+                id="country-flag"
+                value={countryFormData.flagUrl || ''}
+                onChange={(e) => setCountryFormData(prev => ({ ...prev, flagUrl: e.target.value }))}
+                placeholder="Enter flag image URL"
+                data-testid="country-flag-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCountryModalOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleCountrySubmit}
+              disabled={
+                !countryFormData.name || 
+                !countryFormData.code || 
+                createCountryMutation.isPending || 
+                updateCountryMutation.isPending
+              }
+              data-testid="country-submit-button"
+            >
+              {selectedCountry ? 'Update Country' : 'Create Country'}
             </Button>
           </DialogFooter>
         </DialogContent>
