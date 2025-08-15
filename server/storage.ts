@@ -42,10 +42,12 @@ import { eq, and, gte, lte, desc, asc, or, sql, not } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (custom authentication)
+  getAllUsers(): Promise<User[]>;
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: { username: string; password: string; email?: string | null; firstName?: string | null; lastName?: string | null; role?: 'superadmin' | 'manager' | 'user' | 'customer'; countryCode?: string | null }): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
+  deleteUser(id: string): Promise<void>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Country operations
@@ -119,6 +121,10 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations (mandatory for Replit Auth)
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(asc(users.createdAt));
+  }
+
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -149,6 +155,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {

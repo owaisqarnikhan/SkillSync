@@ -70,6 +70,17 @@ import {
 } from "lucide-react";
 import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, InsertTeam, InsertVenue } from "@shared/schema";
 
+interface UserFormData {
+  username?: string;
+  password?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: 'superadmin' | 'manager' | 'user' | 'customer';
+  countryCode?: string;
+  isActive?: boolean;
+}
+
 export default function SuperAdminDashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -85,6 +96,11 @@ export default function SuperAdminDashboard() {
   const [venueModalOpen, setVenueModalOpen] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<VenueWithDetails | null>(null);
   const [venueFormData, setVenueFormData] = useState<Partial<InsertVenue>>({});
+  
+  // User management state
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userFormData, setUserFormData] = useState<UserFormData>({});
 
   // Redirect if not SuperAdmin
   useEffect(() => {
@@ -142,6 +158,11 @@ export default function SuperAdminDashboard() {
   
   const { data: sports = [] } = useQuery<Sport[]>({
     queryKey: ["/api/sports"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
+  
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
     enabled: isAuthenticated && user?.role === 'superadmin',
   });
 
@@ -375,7 +396,6 @@ export default function SuperAdminDashboard() {
       capacity: venue.capacity,
       description: venue.description || '',
       amenities: venue.amenities || [],
-      sportIds: venue.sportIds || [],
     });
     setVenueModalOpen(true);
   };
@@ -394,6 +414,96 @@ export default function SuperAdminDashboard() {
 
   const handleDeleteBooking = (id: string) => {
     deleteBookingMutation.mutate(id);
+  };
+
+  // User CRUD mutations
+  const createUserMutation = useMutation({
+    mutationFn: (data: UserFormData) => apiRequest("POST", "/api/users", data),
+    onSuccess: () => {
+      toast({ title: "User Created", description: "User has been created successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setUserModalOpen(false);
+      setUserFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<UserFormData> }) => 
+      apiRequest("PUT", `/api/users/${id}`, data),
+    onSuccess: () => {
+      toast({ title: "User Updated", description: "User has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setUserModalOpen(false);
+      setSelectedUser(null);
+      setUserFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/users/${id}`),
+    onSuccess: () => {
+      toast({ title: "User Deleted", description: "User has been deleted successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // User handlers
+  const handleCreateUser = () => {
+    setSelectedUser(null);
+    setUserFormData({ role: 'customer' });
+    setUserModalOpen(true);
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setUserFormData({
+      username: user.username,
+      email: user.email || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      role: user.role,
+      countryCode: user.countryCode || '',
+      isActive: user.isActive,
+    });
+    setUserModalOpen(true);
+  };
+
+  const handleUserSubmit = () => {
+    if (selectedUser) {
+      // Don't send password when updating
+      const { password, ...updateData } = userFormData;
+      updateUserMutation.mutate({ id: selectedUser.id, data: updateData });
+    } else {
+      createUserMutation.mutate(userFormData);
+    }
+  };
+
+  const handleDeleteUser = (id: string) => {
+    deleteUserMutation.mutate(id);
   };
 
   if (isLoading || configLoading) {
@@ -832,7 +942,7 @@ export default function SuperAdminDashboard() {
                         <TableHead>Name</TableHead>
                         <TableHead>Location</TableHead>
                         <TableHead>Capacity</TableHead>
-                        <TableHead>Sports</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -843,18 +953,9 @@ export default function SuperAdminDashboard() {
                           <TableCell>{venue.location}</TableCell>
                           <TableCell>{venue.capacity}</TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {venue.sports?.slice(0, 2).map((sport) => (
-                                <Badge key={sport.id} variant="secondary" className="text-xs">
-                                  {sport.name}
-                                </Badge>
-                              ))}
-                              {venue.sports && venue.sports.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{venue.sports.length - 2}
-                                </Badge>
-                              )}
-                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              {venue.type.replace('_', ' ').toUpperCase()}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
@@ -958,7 +1059,7 @@ export default function SuperAdminDashboard() {
                             {Math.round((new Date(booking.endDateTime).getTime() - new Date(booking.startDateTime).getTime()) / (1000 * 60 * 60 * 100)) / 10}h
                           </TableCell>
                           <TableCell>
-                            <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}>
+                            <Badge variant={booking.status === 'approved' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}>
                               {booking.status}
                             </Badge>
                           </TableCell>
@@ -1013,19 +1114,121 @@ export default function SuperAdminDashboard() {
           </TabsContent>
 
           {/* Users Management Tab */}
-          <TabsContent value="users">
+          <TabsContent value="users" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>User Management</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="w-5 h-5" />
+                    <span>Users Management (NOCs)</span>
+                  </CardTitle>
+                  <Button onClick={handleCreateUser} data-testid="create-user-button">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add User
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-900 mb-2">User Management</p>
-                  <p className="text-muted-foreground">
-                    User management functionality will be implemented here.
-                  </p>
-                </div>
+                {allUsers.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Username</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Country</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allUsers.map((userItem) => (
+                        <TableRow key={userItem.id}>
+                          <TableCell className="font-medium">{userItem.username}</TableCell>
+                          <TableCell>
+                            {userItem.firstName && userItem.lastName 
+                              ? `${userItem.firstName} ${userItem.lastName}`
+                              : '-'
+                            }
+                          </TableCell>
+                          <TableCell>{userItem.email || '-'}</TableCell>
+                          <TableCell>
+                            <Badge variant={userItem.role === 'superadmin' ? 'default' : userItem.role === 'manager' ? 'secondary' : 'outline'}>
+                              {userItem.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Flag className="w-4 h-4" />
+                              <span>{userItem.countryCode || 'N/A'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={userItem.isActive ? 'default' : 'secondary'}>
+                              {userItem.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditUser(userItem)}
+                                data-testid={`edit-user-${userItem.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              {userItem.id !== user?.id && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-red-600 hover:text-red-700"
+                                      data-testid={`delete-user-${userItem.id}`}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{userItem.username}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteUser(userItem.id)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">No Users Found</p>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first NOC user to get started.
+                    </p>
+                    <Button onClick={handleCreateUser}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add User
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1230,6 +1433,143 @@ export default function SuperAdminDashboard() {
               data-testid="venue-submit-button"
             >
               {selectedVenue ? 'Update Venue' : 'Create Venue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Modal */}
+      <Dialog open={userModalOpen} onOpenChange={setUserModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{selectedUser ? 'Edit User' : 'Create New User'}</DialogTitle>
+            <DialogDescription>
+              {selectedUser ? 'Update the user information below.' : 'Fill in the details to create a new NOC user.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-username">Username</Label>
+                <Input
+                  id="user-username"
+                  value={userFormData.username || ''}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="Enter username"
+                  disabled={!!selectedUser}
+                  data-testid="user-username-input"
+                />
+              </div>
+              {!selectedUser && (
+                <div className="space-y-2">
+                  <Label htmlFor="user-password">Password</Label>
+                  <Input
+                    id="user-password"
+                    type="password"
+                    value={userFormData.password || ''}
+                    onChange={(e) => setUserFormData(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Enter password"
+                    data-testid="user-password-input"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-firstName">First Name</Label>
+                <Input
+                  id="user-firstName"
+                  value={userFormData.firstName || ''}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="Enter first name"
+                  data-testid="user-firstname-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-lastName">Last Name</Label>
+                <Input
+                  id="user-lastName"
+                  value={userFormData.lastName || ''}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Enter last name"
+                  data-testid="user-lastname-input"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-email">Email</Label>
+              <Input
+                id="user-email"
+                type="email"
+                value={userFormData.email || ''}
+                onChange={(e) => setUserFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="Enter email address"
+                data-testid="user-email-input"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-role">Role</Label>
+                <Select
+                  value={userFormData.role || 'customer'}
+                  onValueChange={(value) => setUserFormData(prev => ({ ...prev, role: value as any }))}
+                >
+                  <SelectTrigger data-testid="user-role-select">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">Customer (NOC)</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="superadmin">SuperAdmin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-country">Country Code</Label>
+                <Select
+                  value={userFormData.countryCode || ''}
+                  onValueChange={(value) => setUserFormData(prev => ({ ...prev, countryCode: value }))}
+                >
+                  <SelectTrigger data-testid="user-country-select">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.code}>
+                        {country.name} ({country.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {selectedUser && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="user-active"
+                  checked={userFormData.isActive ?? true}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                  className="rounded border-gray-300"
+                  data-testid="user-active-checkbox"
+                />
+                <Label htmlFor="user-active">User is Active</Label>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserModalOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleUserSubmit}
+              disabled={
+                !userFormData.username || 
+                (!selectedUser && !userFormData.password) ||
+                createUserMutation.isPending || 
+                updateUserMutation.isPending
+              }
+              data-testid="user-submit-button"
+            >
+              {selectedUser ? 'Update User' : 'Create User'}
             </Button>
           </DialogFooter>
         </DialogContent>

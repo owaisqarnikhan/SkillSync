@@ -666,18 +666,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      // This would need a new method in storage to get all users
-      // For now, we'll return an empty array
-      res.json([]);
+      const allUsers = await storage.getAllUsers();
+      // Don't return password hashes
+      const safeUsers = allUsers.map(u => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        role: u.role,
+        countryCode: u.countryCode,
+        isActive: u.isActive,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt
+      }));
+      res.json(safeUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
+  app.post('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { username, password, email, firstName, lastName, role, countryCode } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const { hashPassword } = await import('./customAuth');
+      const hashedPassword = await hashPassword(password);
+
+      const newUser = await storage.createUser({
+        username,
+        password: hashedPassword,
+        email: email || null,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        role: role || 'customer',
+        countryCode: countryCode || null
+      });
+
+      await createAuditLog(req, 'CREATE', 'user', newUser.id, null, newUser);
+      
+      // Return user without password
+      const { password: _, ...safeUser } = newUser;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   app.put('/api/users/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const currentUser = await storage.getUser(req.user.claims.sub);
+      const currentUser = await storage.getUser(req.user.id);
       if (currentUser?.role !== 'superadmin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -687,18 +742,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const updatedUser = await storage.upsertUser({
-        ...targetUser,
-        ...req.body,
-        id: req.params.id,
-        updatedAt: new Date(),
-      });
+      // Don't allow updating password through this endpoint
+      const { password, ...updateData } = req.body;
       
-      await createAuditLog(req, 'UPDATE', 'user', req.params.id, targetUser, req.body);
-      res.json(updatedUser);
+      const updatedUser = await storage.updateUser(req.params.id, updateData);
+      
+      await createAuditLog(req, 'UPDATE', 'user', req.params.id, targetUser, updateData);
+      
+      // Return user without password
+      const { password: _, ...safeUser } = updatedUser;
+      res.json(safeUser);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete('/api/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      if (currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Don't allow deleting yourself
+      if (targetUser.id === currentUser.id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      await storage.deleteUser(req.params.id);
+      await createAuditLog(req, 'DELETE', 'user', req.params.id, targetUser, null);
+      
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 
