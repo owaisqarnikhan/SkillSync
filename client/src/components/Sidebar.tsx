@@ -57,12 +57,12 @@ export default function Sidebar() {
   const handleLogout = async () => {
     try {
       await apiRequest("POST", "/api/logout");
-      // Force page reload to clear authentication state
-      window.location.reload();
+      // Redirect to login page instead of reloading
+      window.location.href = "/";
     } catch (error) {
       console.error("Logout failed:", error);
-      // Fallback: still reload the page
-      window.location.reload();
+      // Fallback: still redirect to login
+      window.location.href = "/";
     }
   };
 
