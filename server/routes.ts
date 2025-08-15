@@ -41,6 +41,10 @@ async function createAuditLog(
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+  
+  // Initialize system configuration
+  const { initializeSystemConfig } = await import('./init-system-config');
+  await initializeSystemConfig();
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -139,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const countryCode = req.query.country as string;
       
       // Customers can only see their own country's teams
-      const filterCountry = user?.role === 'customer' ? user.countryCode : countryCode;
+      const filterCountry = user?.role === 'customer' ? (user.countryCode || undefined) : (countryCode || undefined);
       
       const teams = await storage.getTeams(filterCountry);
       res.json(teams);
@@ -559,6 +563,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
       res.status(500).json({ message: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // System configuration routes
+  // Public endpoint for login page configuration
+  app.get('/api/system/config', async (req, res) => {
+    try {
+      const config = await storage.getSystemConfig();
+      // Only return public config fields for login page
+      const publicConfig = {
+        loginHeading1: config?.loginHeading1,
+        loginHeading2: config?.loginHeading2, 
+        loginHeading3: config?.loginHeading3,
+        logoUrl: config?.logoUrl,
+        separatorImageUrl: config?.separatorImageUrl,
+      };
+      res.json(publicConfig);
+    } catch (error) {
+      console.error("Error fetching system config:", error);
+      res.status(500).json({ message: "Failed to fetch system configuration" });
+    }
+  });
+  
+  // SuperAdmin only endpoint for full system config
+  app.get('/api/system/config/admin', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const config = await storage.getSystemConfig();
+      res.json(config);
+    } catch (error) {
+      console.error("Error fetching system config:", error);
+      res.status(500).json({ message: "Failed to fetch system configuration" });
+    }
+  });
+
+  app.put('/api/system/config', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const config = await storage.updateSystemConfig(req.body);
+      await createAuditLog(req, 'UPDATE', 'system_config', config.id, null, req.body);
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating system config:", error);
+      res.status(500).json({ message: "Failed to update system configuration" });
+    }
+  });
+
+  // Dashboard permissions routes (SuperAdmin only)
+  app.get('/api/dashboard/permissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const permissions = await storage.getDashboardPermissions();
+      res.json(permissions);
+    } catch (error) {
+      console.error("Error fetching dashboard permissions:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard permissions" });
+    }
+  });
+
+  app.put('/api/dashboard/permissions/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const permission = await storage.updateDashboardPermission(req.params.id, req.body);
+      await createAuditLog(req, 'UPDATE', 'dashboard_permission', req.params.id, null, req.body);
+      res.json(permission);
+    } catch (error) {
+      console.error("Error updating dashboard permission:", error);
+      res.status(500).json({ message: "Failed to update dashboard permission" });
+    }
+  });
+
+  // User management routes (SuperAdmin only)
+  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // This would need a new method in storage to get all users
+      // For now, we'll return an empty array
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put('/api/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const updatedUser = await storage.upsertUser({
+        ...targetUser,
+        ...req.body,
+        id: req.params.id,
+        updatedAt: new Date(),
+      });
+      
+      await createAuditLog(req, 'UPDATE', 'user', req.params.id, targetUser, req.body);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
     }
   });
 

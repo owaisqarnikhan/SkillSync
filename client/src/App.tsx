@@ -6,14 +6,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Navigation from "@/components/Navigation";
 import NotFound from "@/pages/not-found";
-import Landing from "@/pages/Landing";
-import Dashboard from "@/pages/Dashboard";
+import SecureLogin from "@/pages/SecureLogin";
+import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
+import ManagerDashboard from "@/pages/ManagerDashboard";
+import UserDashboard from "@/pages/UserDashboard";
 import Bookings from "@/pages/Bookings";
 import Venues from "@/pages/Venues";
 import Teams from "@/pages/Teams";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -26,15 +28,33 @@ function Router() {
     );
   }
 
+  // Role-based dashboard routing
+  const getDashboardComponent = () => {
+    if (!user) return SecureLogin;
+    
+    switch (user.role) {
+      case 'superadmin':
+        return SuperAdminDashboard;
+      case 'manager':
+        return ManagerDashboard;
+      case 'user':
+      case 'customer':
+        return UserDashboard;
+      default:
+        return UserDashboard;
+    }
+  };
+
   return (
     <>
       {isAuthenticated && <Navigation />}
       <Switch>
         {!isAuthenticated ? (
-          <Route path="/" component={Landing} />
+          <Route path="/" component={SecureLogin} />
         ) : (
           <>
-            <Route path="/" component={Dashboard} />
+            <Route path="/dashboard" component={getDashboardComponent()} />
+            <Route path="/" component={getDashboardComponent()} />
             <Route path="/bookings" component={Bookings} />
             <Route path="/venues" component={Venues} />
             <Route path="/teams" component={Teams} />

@@ -27,7 +27,7 @@ export const sessions = pgTable(
 );
 
 // User roles enum
-export const userRoleEnum = pgEnum('user_role', ['superadmin', 'manager', 'customer']);
+export const userRoleEnum = pgEnum('user_role', ['superadmin', 'manager', 'user', 'customer']);
 
 // Users table for Replit Auth and role management
 export const users = pgTable("users", {
@@ -158,6 +158,36 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// System configuration table
+export const systemConfig = pgTable("system_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loginHeading1: varchar("login_heading_1", { length: 200 }).default('Welcome to').notNull(),
+  loginHeading2: varchar("login_heading_2", { length: 200 }).default('Bahrain Asian Youth Games 2025').notNull(),
+  loginHeading3: varchar("login_heading_3", { length: 200 }).default('Training Management System').notNull(),
+  logoUrl: varchar("logo_url"),
+  separatorImageUrl: varchar("separator_image_url"),
+  smtpHost: varchar("smtp_host"),
+  smtpPort: integer("smtp_port").default(587),
+  smtpUsername: varchar("smtp_username"),
+  smtpPassword: varchar("smtp_password"),
+  smtpFromEmail: varchar("smtp_from_email"),
+  smtpFromName: varchar("smtp_from_name").default('Training Management System'),
+  smtpSecure: boolean("smtp_secure").default(true).notNull(),
+  twoHourLimitEnabled: boolean("two_hour_limit_enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Dashboard permissions table
+export const dashboardPermissions = pgTable("dashboard_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  role: userRoleEnum("role").notNull(),
+  dashboardType: varchar("dashboard_type", { length: 50 }).notNull(), // 'user', 'manager', 'superadmin'
+  canAccess: boolean("can_access").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Audit logs for tracking changes
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -266,6 +296,14 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const systemConfigRelations = relations(systemConfig, ({ many }) => ({
+  // System config is standalone
+}));
+
+export const dashboardPermissionsRelations = relations(dashboardPermissions, ({ one }) => ({
+  // Dashboard permissions are standalone role-based config
+}));
+
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, {
     fields: [auditLogs.userId],
@@ -329,6 +367,18 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertSystemConfigSchema = createInsertSchema(systemConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDashboardPermissionSchema = createInsertSchema(dashboardPermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
   createdAt: true,
@@ -345,6 +395,8 @@ export type Booking = typeof bookings.$inferSelect;
 export type VenueBlackout = typeof venueBlackouts.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
+export type SystemConfig = typeof systemConfig.$inferSelect;
+export type DashboardPermission = typeof dashboardPermissions.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCountry = z.infer<typeof insertCountrySchema>;
@@ -355,6 +407,8 @@ export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type InsertVenueBlackout = z.infer<typeof insertVenueBlackoutSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;
+export type InsertDashboardPermission = z.infer<typeof insertDashboardPermissionSchema>;
 
 // Extended types for joins
 export type BookingWithDetails = Booking & {

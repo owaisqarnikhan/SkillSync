@@ -8,6 +8,8 @@ import {
   venueBlackouts,
   notifications,
   auditLogs,
+  systemConfig,
+  dashboardPermissions,
   type User,
   type UpsertUser,
   type Country,
@@ -30,6 +32,10 @@ import {
   type NotificationWithDetails,
   type AuditLog,
   type InsertAuditLog,
+  type SystemConfig,
+  type InsertSystemConfig,
+  type DashboardPermission,
+  type InsertDashboardPermission,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, asc, or, sql, not } from "drizzle-orm";
@@ -90,6 +96,15 @@ export interface IStorage {
   createAuditLog(auditLog: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(filters?: { userId?: string; entityType?: string; entityId?: string }): Promise<AuditLog[]>;
   
+  // System configuration operations
+  getSystemConfig(): Promise<SystemConfig | undefined>;
+  updateSystemConfig(config: Partial<InsertSystemConfig>): Promise<SystemConfig>;
+  
+  // Dashboard permissions operations
+  getDashboardPermissions(role?: string): Promise<DashboardPermission[]>;
+  updateDashboardPermission(id: string, permission: Partial<DashboardPermission>): Promise<DashboardPermission>;
+  createDashboardPermission(permission: InsertDashboardPermission): Promise<DashboardPermission>;
+  
   // Dashboard statistics
   getDashboardStats(userId: string): Promise<{
     activeBookings: number;
@@ -143,7 +158,7 @@ export class DatabaseStorage implements IStorage {
 
   // Team operations
   async getTeams(countryCode?: string): Promise<TeamWithDetails[]> {
-    const query = db
+    let query = db
       .select({
         id: teams.id,
         name: teams.name,
@@ -162,14 +177,16 @@ export class DatabaseStorage implements IStorage {
       .from(teams)
       .innerJoin(countries, eq(teams.countryId, countries.id))
       .innerJoin(sports, eq(teams.sportId, sports.id))
-      .leftJoin(users, eq(teams.managerId, users.id))
-      .where(eq(teams.isActive, true));
+      .leftJoin(users, eq(teams.managerId, users.id));
 
+    const conditions = [eq(teams.isActive, true)];
     if (countryCode) {
-      query = query.where(and(eq(teams.isActive, true), eq(countries.code, countryCode)));
+      conditions.push(eq(countries.code, countryCode));
     }
+    
+    const finalQuery = query.where(and(...conditions));
 
-    const results = await query.orderBy(asc(teams.name));
+    const results = await finalQuery.orderBy(asc(teams.name));
     return results.map(row => ({
       ...row,
       country: row.country,
@@ -341,18 +358,24 @@ export class DatabaseStorage implements IStorage {
         country: countries,
         sport: sports,
         requester: users,
-        approver: {
-          id: sql<string>`approver.id`,
-          email: sql<string>`approver.email`,
-          firstName: sql<string>`approver.first_name`,
-          lastName: sql<string>`approver.last_name`,
-          profileImageUrl: sql<string>`approver.profile_image_url`,
-          role: sql<string>`approver.role`,
-          countryCode: sql<string>`approver.country_code`,
-          isActive: sql<boolean>`approver.is_active`,
-          createdAt: sql<Date>`approver.created_at`,
-          updatedAt: sql<Date>`approver.updated_at`,
-        },
+        approver: sql<User | null>`
+          CASE 
+            WHEN approver.id IS NOT NULL THEN 
+              JSON_BUILD_OBJECT(
+                'id', approver.id,
+                'email', approver.email,
+                'firstName', approver.first_name,
+                'lastName', approver.last_name,
+                'profileImageUrl', approver.profile_image_url,
+                'role', approver.role,
+                'countryCode', approver.country_code,
+                'isActive', approver.is_active,
+                'createdAt', approver.created_at,
+                'updatedAt', approver.updated_at
+              )
+            ELSE NULL
+          END
+        `,
       })
       .from(bookings)
       .innerJoin(venues, eq(bookings.venueId, venues.id))
@@ -393,11 +416,11 @@ export class DatabaseStorage implements IStorage {
       conditions.push(lte(bookings.endDateTime, new Date(filters.endDate)));
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    const finalQuery = conditions.length > 0 
+      ? query.where(and(...conditions))
+      : query;
 
-    const results = await query.orderBy(desc(bookings.createdAt));
+    const results = await finalQuery.orderBy(desc(bookings.createdAt));
 
     return results.map(row => ({
       ...row,
@@ -408,7 +431,7 @@ export class DatabaseStorage implements IStorage {
         sport: row.sport,
       },
       requester: row.requester,
-      approver: row.approver.id ? row.approver : undefined,
+      approver: row.approver || undefined,
     }));
   }
 
@@ -436,18 +459,24 @@ export class DatabaseStorage implements IStorage {
         country: countries,
         sport: sports,
         requester: users,
-        approver: {
-          id: sql<string>`approver.id`,
-          email: sql<string>`approver.email`,
-          firstName: sql<string>`approver.first_name`,
-          lastName: sql<string>`approver.last_name`,
-          profileImageUrl: sql<string>`approver.profile_image_url`,
-          role: sql<string>`approver.role`,
-          countryCode: sql<string>`approver.country_code`,
-          isActive: sql<boolean>`approver.is_active`,
-          createdAt: sql<Date>`approver.created_at`,
-          updatedAt: sql<Date>`approver.updated_at`,
-        },
+        approver: sql<User | null>`
+          CASE 
+            WHEN approver.id IS NOT NULL THEN 
+              JSON_BUILD_OBJECT(
+                'id', approver.id,
+                'email', approver.email,
+                'firstName', approver.first_name,
+                'lastName', approver.last_name,
+                'profileImageUrl', approver.profile_image_url,
+                'role', approver.role,
+                'countryCode', approver.country_code,
+                'isActive', approver.is_active,
+                'createdAt', approver.created_at,
+                'updatedAt', approver.updated_at
+              )
+            ELSE NULL
+          END
+        `,
       })
       .from(bookings)
       .innerJoin(venues, eq(bookings.venueId, venues.id))
@@ -469,7 +498,7 @@ export class DatabaseStorage implements IStorage {
         sport: result.sport,
       },
       requester: result.requester,
-      approver: result.approver.id ? result.approver : undefined,
+      approver: result.approver ? result.approver as User : undefined,
     };
   }
 
@@ -578,26 +607,28 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(teams, eq(bookings.teamId, teams.id))
       .leftJoin(countries, eq(teams.countryId, countries.id))
       .leftJoin(sports, eq(teams.sportId, sports.id))
-      .leftJoin(users, eq(bookings.requesterId, users.id))
-      .where(eq(notifications.userId, userId));
+      .leftJoin(users, eq(bookings.requesterId, users.id));
 
+    const conditions = [eq(notifications.userId, userId)];
     if (unreadOnly) {
-      query = query.where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+      conditions.push(eq(notifications.isRead, false));
     }
+    
+    const finalQuery = query.where(and(...conditions));
 
-    const results = await query.orderBy(desc(notifications.createdAt));
+    const results = await finalQuery.orderBy(desc(notifications.createdAt));
 
-    return results.map(row => ({
+    return results.map((row: any): NotificationWithDetails => ({
       ...row,
       booking: row.booking ? {
         ...row.booking,
-        venue: row.venue!,
-        team: row.team ? {
+        venue: row.venue,
+        team: {
           ...row.team,
-          country: row.country!,
-          sport: row.sport!,
-        } : undefined,
-        requester: row.requester!,
+          country: row.country || {},
+          sport: row.sport || {},
+        },
+        requester: row.requester,
       } : undefined,
     }));
   }
@@ -633,11 +664,11 @@ export class DatabaseStorage implements IStorage {
     if (filters?.entityType) conditions.push(eq(auditLogs.entityType, filters.entityType));
     if (filters?.entityId) conditions.push(eq(auditLogs.entityId, filters.entityId));
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    const finalQuery = conditions.length > 0
+      ? query.where(and(...conditions))
+      : query;
 
-    return await query;
+    return await finalQuery;
   }
 
   // Dashboard statistics
@@ -701,6 +732,60 @@ export class DatabaseStorage implements IStorage {
       availableVenues: availableVenuesResult[0]?.count || 0,
       teamMembers: teamMembersResult[0]?.totalMembers || 0,
     };
+  }
+  
+  // System configuration operations
+  async getSystemConfig(): Promise<SystemConfig | undefined> {
+    const [config] = await db.select().from(systemConfig).limit(1);
+    return config;
+  }
+
+  async updateSystemConfig(configData: Partial<InsertSystemConfig>): Promise<SystemConfig> {
+    // First check if config exists
+    const existing = await this.getSystemConfig();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(systemConfig)
+        .set({ ...configData, updatedAt: new Date() })
+        .where(eq(systemConfig.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(systemConfig)
+        .values(configData)
+        .returning();
+      return created;
+    }
+  }
+  
+  // Dashboard permissions operations
+  async getDashboardPermissions(role?: string): Promise<DashboardPermission[]> {
+    let query = db.select().from(dashboardPermissions).orderBy(asc(dashboardPermissions.role));
+    
+    const finalQuery = role
+      ? query.where(eq(dashboardPermissions.role, role as any))
+      : query;
+    
+    return await finalQuery;
+  }
+
+  async updateDashboardPermission(id: string, permissionData: Partial<DashboardPermission>): Promise<DashboardPermission> {
+    const [updated] = await db
+      .update(dashboardPermissions)
+      .set({ ...permissionData, updatedAt: new Date() })
+      .where(eq(dashboardPermissions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async createDashboardPermission(permissionData: InsertDashboardPermission): Promise<DashboardPermission> {
+    const [created] = await db
+      .insert(dashboardPermissions)
+      .values(permissionData)
+      .returning();
+    return created;
   }
 }
 
