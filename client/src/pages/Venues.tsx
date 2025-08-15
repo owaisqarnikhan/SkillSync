@@ -42,11 +42,15 @@ import {
   Calendar,
   Edit,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Upload,
+  Image
 } from "lucide-react";
 import type { VenueWithDetails, BookingWithDetails, InsertVenue } from "@shared/schema";
 import BookingModal from "@/components/BookingModal";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import { format, startOfDay, endOfDay } from "date-fns";
+import type { UploadResult } from "@uppy/core";
 
 const venueIcons = {
   swimming_pool: Waves,
@@ -85,6 +89,7 @@ export default function Venues() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<VenueWithDetails | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<InsertVenue>>({});
+  const [isUploading, setIsUploading] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -208,6 +213,7 @@ export default function Venues() {
       workingStartTime: venue.workingStartTime,
       workingEndTime: venue.workingEndTime,
       bufferTimeMinutes: venue.bufferTimeMinutes,
+      imageUrl: venue.imageUrl || '',
     });
     setEditModalOpen(true);
   };
@@ -235,6 +241,51 @@ export default function Venues() {
 
   const canDelete = () => {
     return user?.role === 'superadmin';
+  };
+
+  // Image upload handlers
+  const handleGetUploadParameters = async () => {
+    try {
+      const response = await apiRequest("POST", "/api/objects/upload");
+      const data = await response.json();
+      return {
+        method: "PUT" as const,
+        url: data.uploadURL,
+      };
+    } catch (error) {
+      toast({
+        title: "Upload Error",
+        description: "Failed to get upload URL",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleImageUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    setIsUploading(true);
+    try {
+      if (result.successful && result.successful.length > 0) {
+        const uploadedFile = result.successful[0];
+        const uploadURL = uploadedFile.uploadURL;
+        
+        // Update the form data with the new image URL
+        setEditFormData(prev => ({ ...prev, imageUrl: uploadURL }));
+        
+        toast({
+          title: "Image Uploaded",
+          description: "Venue image has been uploaded successfully.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload venue image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (isLoading) {
@@ -328,8 +379,17 @@ export default function Venues() {
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {venue.imageUrl ? (
+                            <img 
+                              src={venue.imageUrl}
+                              alt={venue.name}
+                              className="w-full h-full object-cover rounded-lg"
+                              data-testid={`venue-image-${venue.id}`}
+                            />
+                          ) : (
+                            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <CardTitle className="text-base sm:text-lg truncate" data-testid={`venue-name-${venue.id}`}>
@@ -466,6 +526,43 @@ export default function Venues() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+              {/* Venue Image Upload */}
+              <div className="grid gap-2">
+                <Label>Venue Image</Label>
+                <div className="space-y-3">
+                  {editFormData.imageUrl ? (
+                    <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={editFormData.imageUrl}
+                        alt="Venue preview"
+                        className="w-full h-full object-cover"
+                        data-testid="venue-image-preview"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <Image className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">No image uploaded</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={5242880} // 5MB
+                    onGetUploadParameters={handleGetUploadParameters}
+                    onComplete={handleImageUploadComplete}
+                    buttonClassName="w-full"
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <Upload className="w-4 h-4" />
+                      <span>{isUploading ? "Uploading..." : "Upload Venue Image"}</span>
+                    </div>
+                  </ObjectUploader>
+                </div>
+              </div>
+              
               <div className="grid gap-2">
                 <Label htmlFor="name">Venue Name</Label>
                 <Input

@@ -109,13 +109,22 @@ export default function SystemAdmin() {
         const uploadedFile = result.successful[0];
         const uploadURL = uploadedFile.uploadURL;
         
-        // Update system config with new logo
-        const updatedConfig = { ...systemConfig, logoUrl: uploadURL };
+        // Update logo via dedicated endpoint
+        const response = await apiRequest("PUT", "/api/system/logo", {
+          logoUrl: uploadURL
+        });
+        const data = await response.json();
+        
+        // Update local state with normalized path
+        const updatedConfig = { ...systemConfig, logoUrl: data.logoUrl };
         setSystemConfig(updatedConfig);
+        
+        // Refresh system config
+        queryClient.invalidateQueries({ queryKey: ["/api/system/config/admin"] });
         
         toast({
           title: "Logo Uploaded",
-          description: "Logo has been uploaded. Don't forget to save changes.",
+          description: "Logo has been uploaded and saved successfully.",
         });
       }
     } catch (error) {
@@ -136,13 +145,22 @@ export default function SystemAdmin() {
         const uploadedFile = result.successful[0];
         const uploadURL = uploadedFile.uploadURL;
         
-        // Update system config with new separator image
-        const updatedConfig = { ...systemConfig, separatorImageUrl: uploadURL };
+        // Update separator image via dedicated endpoint
+        const response = await apiRequest("PUT", "/api/system/separator", {
+          separatorImageUrl: uploadURL
+        });
+        const data = await response.json();
+        
+        // Update local state with normalized path
+        const updatedConfig = { ...systemConfig, separatorImageUrl: data.separatorImageUrl };
         setSystemConfig(updatedConfig);
+        
+        // Refresh system config
+        queryClient.invalidateQueries({ queryKey: ["/api/system/config/admin"] });
         
         toast({
           title: "Separator Image Uploaded",
-          description: "Separator image has been uploaded. Don't forget to save changes.",
+          description: "Separator image has been uploaded and saved successfully.",
         });
       }
     } catch (error) {

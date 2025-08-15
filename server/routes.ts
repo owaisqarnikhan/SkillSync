@@ -8,7 +8,6 @@ import {
   insertTeamSchema,
   insertVenueSchema,
   insertCountrySchema,
-  insertSportSchema,
   insertNotificationSchema,
   insertAuditLogSchema,
 } from "@shared/schema";
@@ -112,38 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sports routes
-  app.get('/api/sports', isAuthenticated, async (req, res) => {
-    try {
-      const sports = await storage.getSports();
-      res.json(sports);
-    } catch (error) {
-      console.error("Error fetching sports:", error);
-      res.status(500).json({ message: "Failed to fetch sports" });
-    }
-  });
-
-  app.post('/api/sports', isAuthenticated, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'superadmin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const validatedData = insertSportSchema.parse(req.body);
-      const sport = await storage.createSport(validatedData);
-      
-      await createAuditLog(req, 'CREATE', 'sport', sport.id, null, validatedData);
-      
-      res.status(201).json(sport);
-    } catch (error) {
-      console.error("Error creating sport:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create sport" });
-    }
-  });
+  // Sports routes removed - teams are now standalone
 
   // Teams routes
   app.get('/api/teams', isAuthenticated, async (req: any, res) => {
@@ -622,8 +590,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const config = await storage.updateSystemConfig(req.body);
-      await createAuditLog(req, 'UPDATE', 'system_config', config.id, null, req.body);
+      // Normalize image URLs if they exist
+      const objectStorageService = new ObjectStorageService();
+      const updateData = { ...req.body };
+      
+      if (updateData.logoUrl) {
+        updateData.logoUrl = objectStorageService.normalizeObjectEntityPath(updateData.logoUrl);
+      }
+      if (updateData.separatorImageUrl) {
+        updateData.separatorImageUrl = objectStorageService.normalizeObjectEntityPath(updateData.separatorImageUrl);
+      }
+
+      const config = await storage.updateSystemConfig(updateData);
+      await createAuditLog(req, 'UPDATE', 'system_config', config.id, null, updateData);
       res.json(config);
     } catch (error) {
       console.error("Error updating system config:", error);
@@ -876,6 +855,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error searching for public object:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // System config image upload endpoints
+  app.put("/api/system/logo", isAuthenticated, async (req: any, res) => {
+    if (!req.body.logoUrl) {
+      return res.status(400).json({ error: "logoUrl is required" });
+    }
+
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      
+      // Normalize the object path
+      const objectPath = objectStorageService.normalizeObjectEntityPath(req.body.logoUrl);
+      
+      // Update system config logo in database
+      const currentConfig = await storage.getSystemConfig();
+      const updatedConfig = await storage.updateSystemConfig({ 
+        ...currentConfig, 
+        logoUrl: objectPath 
+      });
+      
+      res.status(200).json({ 
+        message: "Logo updated successfully",
+        logoUrl: objectPath 
+      });
+    } catch (error) {
+      console.error("Error updating logo:", error);
+      res.status(500).json({ error: "Failed to update logo" });
+    }
+  });
+
+  app.put("/api/system/separator", isAuthenticated, async (req: any, res) => {
+    if (!req.body.separatorImageUrl) {
+      return res.status(400).json({ error: "separatorImageUrl is required" });
+    }
+
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      
+      // Normalize the object path
+      const objectPath = objectStorageService.normalizeObjectEntityPath(req.body.separatorImageUrl);
+      
+      // Update system config separator image in database
+      const currentConfig = await storage.getSystemConfig();
+      const updatedConfig = await storage.updateSystemConfig({ 
+        ...currentConfig, 
+        separatorImageUrl: objectPath 
+      });
+      
+      res.status(200).json({ 
+        message: "Separator image updated successfully",
+        separatorImageUrl: objectPath 
+      });
+    } catch (error) {
+      console.error("Error updating separator image:", error);
+      res.status(500).json({ error: "Failed to update separator image" });
+    }
+  });
+
+  // Venue image upload endpoint
+  app.put("/api/venues/:id/image", isAuthenticated, async (req: any, res) => {
+    if (!req.body.imageUrl) {
+      return res.status(400).json({ error: "imageUrl is required" });
+    }
+
+    try {
+      const user = await storage.getUser(req.user.id);
+      const existingVenue = await storage.getVenue(req.params.id);
+      
+      if (!existingVenue) {
+        return res.status(404).json({ message: "Venue not found" });
+      }
+
+      // Check permissions
+      if (user?.role === 'customer' || 
+          (user?.role === 'manager' && existingVenue.managerId !== user.id)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      
+      // Normalize the object path
+      const objectPath = objectStorageService.normalizeObjectEntityPath(req.body.imageUrl);
+      
+      // Update venue image in database
+      const updatedVenue = await storage.updateVenue(req.params.id, { imageUrl: objectPath });
+      
+      res.status(200).json({ 
+        message: "Venue image updated successfully",
+        imageUrl: objectPath 
+      });
+    } catch (error) {
+      console.error("Error updating venue image:", error);
+      res.status(500).json({ error: "Failed to update venue image" });
     }
   });
 

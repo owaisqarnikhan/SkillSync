@@ -68,7 +68,7 @@ import {
   MapPin,
   Flag
 } from "lucide-react";
-import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, InsertTeam, InsertVenue } from "@shared/schema";
+import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, InsertTeam, InsertVenue } from "@shared/schema";
 
 interface UserFormData {
   username?: string;
@@ -156,10 +156,7 @@ export default function SuperAdminDashboard() {
     enabled: isAuthenticated && user?.role === 'superadmin',
   });
   
-  const { data: sports = [] } = useQuery<Sport[]>({
-    queryKey: ["/api/sports"],
-    enabled: isAuthenticated && user?.role === 'superadmin',
-  });
+  // Sports query removed - teams now store sport as string field directly
   
   const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -363,7 +360,8 @@ export default function SuperAdminDashboard() {
     setTeamFormData({
       name: team.name,
       countryId: team.countryId,
-      sportId: team.sportId,
+      sport: team.sport,
+      category: team.category,
       description: team.description || '',
     });
     setTeamModalOpen(true);
@@ -855,7 +853,7 @@ export default function SuperAdminDashboard() {
                               <span>{team.country?.name || 'N/A'}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{team.sport?.name || 'N/A'}</TableCell>
+                          <TableCell>{team.sport || 'N/A'}</TableCell>
                           <TableCell className="max-w-xs truncate">{team.description || '-'}</TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
@@ -1328,21 +1326,23 @@ export default function SuperAdminDashboard() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="team-sport">Sport</Label>
-                <Select
-                  value={teamFormData.sportId || ''}
-                  onValueChange={(value) => setTeamFormData(prev => ({ ...prev, sportId: value }))}
-                >
-                  <SelectTrigger data-testid="team-sport-select">
-                    <SelectValue placeholder="Select sport" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sports.map((sport) => (
-                      <SelectItem key={sport.id} value={sport.id}>
-                        {sport.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="team-sport"
+                  value={teamFormData.sport || ''}
+                  onChange={(e) => setTeamFormData(prev => ({ ...prev, sport: e.target.value }))}
+                  placeholder="Enter sport name (e.g., Swimming, Basketball)"
+                  data-testid="team-sport-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-category">Category</Label>
+                <Input
+                  id="team-category"
+                  value={teamFormData.category || ''}
+                  onChange={(e) => setTeamFormData(prev => ({ ...prev, category: e.target.value }))}
+                  placeholder="Enter sport category (e.g., Aquatics, Ball Sports)"
+                  data-testid="team-category-input"
+                />
               </div>
             </div>
             <div className="space-y-2">
@@ -1361,7 +1361,7 @@ export default function SuperAdminDashboard() {
             <Button variant="outline" onClick={() => setTeamModalOpen(false)}>Cancel</Button>
             <Button
               onClick={handleTeamSubmit}
-              disabled={!teamFormData.name || !teamFormData.countryId || !teamFormData.sportId || createTeamMutation.isPending || updateTeamMutation.isPending}
+              disabled={!teamFormData.name || !teamFormData.countryId || !teamFormData.sport || createTeamMutation.isPending || updateTeamMutation.isPending}
               data-testid="team-submit-button"
             >
               {selectedTeam ? 'Update Team' : 'Create Team'}

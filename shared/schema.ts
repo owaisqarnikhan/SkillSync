@@ -56,23 +56,15 @@ export const countries = pgTable("countries", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Sports/Disciplines table
-export const sports = pgTable("sports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name", { length: 100 }).notNull(),
-  category: varchar("category", { length: 50 }), // e.g., "Aquatics", "Athletics"
-  iconName: varchar("icon_name", { length: 50 }), // FontAwesome icon name
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+// Sports/Disciplines - REMOVED: Teams are now standalone
 
-// Teams table
+// Teams table (standalone - no sports dependency)
 export const teams = pgTable("teams", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull(),
   countryId: varchar("country_id").notNull().references(() => countries.id),
-  sportId: varchar("sport_id").notNull().references(() => sports.id),
+  sport: varchar("sport", { length: 100 }), // Sport name as string instead of reference
+  category: varchar("category", { length: 50 }), // e.g., "Aquatics", "Athletics"
   managerId: varchar("manager_id").references(() => users.id), // Team manager
   memberCount: integer("member_count").default(0).notNull(),
   description: text("description"),
@@ -95,6 +87,7 @@ export const venues = pgTable("venues", {
   location: varchar("location", { length: 200 }),
   capacity: integer("capacity").notNull(),
   description: text("description"),
+  imageUrl: varchar("image_url"), // Venue image
   amenities: text("amenities").array(), // Array of amenity strings
   workingStartTime: time("working_start_time").default('06:00').notNull(),
   workingEndTime: time("working_end_time").default('22:00').notNull(),
@@ -224,18 +217,12 @@ export const countriesRelations = relations(countries, ({ many }) => ({
   teams: many(teams),
 }));
 
-export const sportsRelations = relations(sports, ({ many }) => ({
-  teams: many(teams),
-}));
+// Sports relations removed - teams are now standalone
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
   country: one(countries, {
     fields: [teams.countryId],
     references: [countries.id],
-  }),
-  sport: one(sports, {
-    fields: [teams.sportId],
-    references: [sports.id],
   }),
   manager: one(users, {
     fields: [teams.managerId],
@@ -327,11 +314,7 @@ export const insertCountrySchema = createInsertSchema(countries).omit({
   updatedAt: true,
 });
 
-export const insertSportSchema = createInsertSchema(sports).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+// insertSportSchema removed - sports table no longer exists
 
 export const insertTeamSchema = createInsertSchema(teams).omit({
   id: true,
@@ -391,7 +374,7 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Country = typeof countries.$inferSelect;
-export type Sport = typeof sports.$inferSelect;
+// Sport type removed - sports table no longer exists
 export type Team = typeof teams.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
@@ -403,7 +386,7 @@ export type DashboardPermission = typeof dashboardPermissions.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCountry = z.infer<typeof insertCountrySchema>;
-export type InsertSport = z.infer<typeof insertSportSchema>;
+// InsertSport type removed - sports table no longer exists
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type InsertVenue = z.infer<typeof insertVenueSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
@@ -416,14 +399,13 @@ export type InsertDashboardPermission = z.infer<typeof insertDashboardPermission
 // Extended types for joins
 export type BookingWithDetails = Booking & {
   venue: Venue;
-  team: Team & { country: Country; sport: Sport };
+  team: Team & { country: Country };
   requester: User;
   approver?: User;
 };
 
 export type TeamWithDetails = Team & {
   country: Country;
-  sport: Sport;
   manager?: User;
 };
 

@@ -1,7 +1,6 @@
 import {
   users,
   countries,
-  sports,
   teams,
   venues,
   bookings,
@@ -14,8 +13,6 @@ import {
   type UpsertUser,
   type Country,
   type InsertCountry,
-  type Sport,
-  type InsertSport,
   type Team,
   type InsertTeam,
   type TeamWithDetails,
@@ -54,9 +51,7 @@ export interface IStorage {
   getCountries(): Promise<Country[]>;
   createCountry(country: InsertCountry): Promise<Country>;
   
-  // Sport operations
-  getSports(): Promise<Sport[]>;
-  createSport(sport: InsertSport): Promise<Sport>;
+  // Sport operations removed - teams are now standalone
   
   // Team operations
   getTeams(countryCode?: string): Promise<TeamWithDetails[]>;
@@ -186,15 +181,7 @@ export class DatabaseStorage implements IStorage {
     return newCountry;
   }
 
-  // Sport operations
-  async getSports(): Promise<Sport[]> {
-    return await db.select().from(sports).where(eq(sports.isActive, true)).orderBy(asc(sports.name));
-  }
-
-  async createSport(sport: InsertSport): Promise<Sport> {
-    const [newSport] = await db.insert(sports).values(sport).returning();
-    return newSport;
-  }
+  // Sport operations removed - teams are now standalone
 
   // Team operations
   async getTeams(countryCode?: string): Promise<TeamWithDetails[]> {
@@ -203,7 +190,8 @@ export class DatabaseStorage implements IStorage {
         id: teams.id,
         name: teams.name,
         countryId: teams.countryId,
-        sportId: teams.sportId,
+        sport: teams.sport,
+        category: teams.category,
         managerId: teams.managerId,
         memberCount: teams.memberCount,
         description: teams.description,
@@ -211,12 +199,12 @@ export class DatabaseStorage implements IStorage {
         createdAt: teams.createdAt,
         updatedAt: teams.updatedAt,
         country: countries,
-        sport: sports,
+        // sport field now part of teams table
         manager: users,
       })
       .from(teams)
       .innerJoin(countries, eq(teams.countryId, countries.id))
-      .innerJoin(sports, eq(teams.sportId, sports.id))
+      // sports join removed - sport is now a string field
       .leftJoin(users, eq(teams.managerId, users.id));
 
     const conditions = [eq(teams.isActive, true)];
@@ -241,7 +229,8 @@ export class DatabaseStorage implements IStorage {
         id: teams.id,
         name: teams.name,
         countryId: teams.countryId,
-        sportId: teams.sportId,
+        sport: teams.sport,
+        category: teams.category,
         managerId: teams.managerId,
         memberCount: teams.memberCount,
         description: teams.description,
@@ -249,12 +238,12 @@ export class DatabaseStorage implements IStorage {
         createdAt: teams.createdAt,
         updatedAt: teams.updatedAt,
         country: countries,
-        sport: sports,
+        // sport field now part of teams table
         manager: users,
       })
       .from(teams)
       .innerJoin(countries, eq(teams.countryId, countries.id))
-      .innerJoin(sports, eq(teams.sportId, sports.id))
+      // sports join removed - sport is now a string field
       .leftJoin(users, eq(teams.managerId, users.id))
       .where(eq(teams.id, id));
 
@@ -296,6 +285,7 @@ export class DatabaseStorage implements IStorage {
         location: venues.location,
         capacity: venues.capacity,
         description: venues.description,
+        imageUrl: venues.imageUrl,
         amenities: venues.amenities,
         workingStartTime: venues.workingStartTime,
         workingEndTime: venues.workingEndTime,
@@ -326,6 +316,7 @@ export class DatabaseStorage implements IStorage {
         location: venues.location,
         capacity: venues.capacity,
         description: venues.description,
+        imageUrl: venues.imageUrl,
         amenities: venues.amenities,
         workingStartTime: venues.workingStartTime,
         workingEndTime: venues.workingEndTime,
@@ -396,7 +387,7 @@ export class DatabaseStorage implements IStorage {
         venue: venues,
         team: teams,
         country: countries,
-        sport: sports,
+        // sport field now part of teams table
         requester: users,
         approver: sql<User | null>`
           CASE 
@@ -421,7 +412,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(venues, eq(bookings.venueId, venues.id))
       .innerJoin(teams, eq(bookings.teamId, teams.id))
       .innerJoin(countries, eq(teams.countryId, countries.id))
-      .innerJoin(sports, eq(teams.sportId, sports.id))
+      // sports join removed - sport is now a string field
       .innerJoin(users, eq(bookings.requesterId, users.id))
       .leftJoin(sql`users as approver`, sql`bookings.approver_id = approver.id`);
 
@@ -468,7 +459,7 @@ export class DatabaseStorage implements IStorage {
       team: {
         ...row.team,
         country: row.country,
-        sport: row.sport,
+        // sport: now stored as string field in teams table
       },
       requester: row.requester,
       approver: row.approver || undefined,
@@ -497,7 +488,7 @@ export class DatabaseStorage implements IStorage {
         venue: venues,
         team: teams,
         country: countries,
-        sport: sports,
+        // sport field now part of teams table
         requester: users,
         approver: sql<User | null>`
           CASE 
@@ -522,7 +513,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(venues, eq(bookings.venueId, venues.id))
       .innerJoin(teams, eq(bookings.teamId, teams.id))
       .innerJoin(countries, eq(teams.countryId, countries.id))
-      .innerJoin(sports, eq(teams.sportId, sports.id))
+      // sports join removed - sport is now a string field
       .innerJoin(users, eq(bookings.requesterId, users.id))
       .leftJoin(sql`users as approver`, sql`bookings.approver_id = approver.id`)
       .where(eq(bookings.id, id));
@@ -638,7 +629,7 @@ export class DatabaseStorage implements IStorage {
         venue: venues,
         team: teams,
         country: countries,
-        sport: sports,
+        // sport field now part of teams table
         requester: users,
       })
       .from(notifications)
@@ -646,7 +637,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(venues, eq(bookings.venueId, venues.id))
       .leftJoin(teams, eq(bookings.teamId, teams.id))
       .leftJoin(countries, eq(teams.countryId, countries.id))
-      .leftJoin(sports, eq(teams.sportId, sports.id))
+      // sports join removed - sport is now a string field
       .leftJoin(users, eq(bookings.requesterId, users.id));
 
     const conditions = [eq(notifications.userId, userId)];

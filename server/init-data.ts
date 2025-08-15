@@ -49,72 +49,11 @@ const asianCountriesData = [
   { code: 'MAC', name: 'Macau' }
 ];
 
-// Sports data for Asian Youth Games
-const sportsData = [
-  // Aquatics
-  { name: 'Swimming', category: 'Aquatics', iconName: 'waves' },
-  { name: 'Diving', category: 'Aquatics', iconName: 'waves' },
-  { name: 'Water Polo', category: 'Aquatics', iconName: 'waves' },
-  { name: 'Artistic Swimming', category: 'Aquatics', iconName: 'waves' },
-  
-  // Athletics
-  { name: 'Track and Field', category: 'Athletics', iconName: 'zap' },
-  { name: 'Marathon', category: 'Athletics', iconName: 'zap' },
-  { name: 'Race Walking', category: 'Athletics', iconName: 'zap' },
-  
-  // Ball Sports
-  { name: 'Basketball', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Football', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Volleyball', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Beach Volleyball', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Handball', category: 'Ball Sports', iconName: 'circle' },
-  
-  // Racket Sports
-  { name: 'Badminton', category: 'Racket Sports', iconName: 'zap' },
-  { name: 'Tennis', category: 'Racket Sports', iconName: 'zap' },
-  { name: 'Table Tennis', category: 'Racket Sports', iconName: 'zap' },
-  { name: 'Squash', category: 'Racket Sports', iconName: 'zap' },
-  
-  // Martial Arts
-  { name: 'Karate', category: 'Martial Arts', iconName: 'shield' },
-  { name: 'Taekwondo', category: 'Martial Arts', iconName: 'shield' },
-  { name: 'Judo', category: 'Martial Arts', iconName: 'shield' },
-  { name: 'Wrestling', category: 'Martial Arts', iconName: 'shield' },
-  { name: 'Boxing', category: 'Martial Arts', iconName: 'shield' },
-  { name: 'Wushu', category: 'Martial Arts', iconName: 'shield' },
-  
-  // Gymnastics
-  { name: 'Artistic Gymnastics', category: 'Gymnastics', iconName: 'star' },
-  { name: 'Rhythmic Gymnastics', category: 'Gymnastics', iconName: 'star' },
-  { name: 'Trampoline', category: 'Gymnastics', iconName: 'star' },
-  
-  // Cycling
-  { name: 'Road Cycling', category: 'Cycling', iconName: 'bicycle' },
-  { name: 'Track Cycling', category: 'Cycling', iconName: 'bicycle' },
-  { name: 'Mountain Bike', category: 'Cycling', iconName: 'bicycle' },
-  { name: 'BMX', category: 'Cycling', iconName: 'bicycle' },
-  
-  // Other Sports
-  { name: 'Weightlifting', category: 'Strength', iconName: 'dumbbell' },
-  { name: 'Archery', category: 'Precision', iconName: 'target' },
-  { name: 'Shooting', category: 'Precision', iconName: 'target' },
-  { name: 'Fencing', category: 'Combat', iconName: 'sword' },
-  { name: 'Sailing', category: 'Marine', iconName: 'anchor' },
-  { name: 'Rowing', category: 'Marine', iconName: 'anchor' },
-  { name: 'Canoe/Kayak', category: 'Marine', iconName: 'anchor' },
-  { name: 'Golf', category: 'Precision', iconName: 'flag' },
-  { name: 'Cricket', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Hockey', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Rugby', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Baseball', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Softball', category: 'Ball Sports', iconName: 'circle' },
-  { name: 'Kabaddi', category: 'Traditional', iconName: 'users' },
-  { name: 'Sepak Takraw', category: 'Traditional', iconName: 'users' }
-];
+// Sports data removed - teams now store sport as string field directly
 
 export async function initializeBaseData() {
   try {
-    console.log("Initializing base data (countries and sports)...");
+    console.log("Initializing base data (countries only)...");
     
     // Initialize countries
     const existingCountries = await storage.getCountries();
@@ -142,32 +81,8 @@ export async function initializeBaseData() {
       console.log(`✓ Countries already exist in database (${existingCountries.length} found)`);
     }
     
-    // Initialize sports
-    const existingSports = await storage.getSports();
-    let sportsCreated = 0;
-    
-    if (existingSports.length === 0) {
-      console.log("Seeding sports data...");
-      for (const sportData of sportsData) {
-        try {
-          await storage.createSport({
-            name: sportData.name,
-            category: sportData.category,
-            iconName: sportData.iconName,
-            isActive: true
-          });
-          sportsCreated++;
-        } catch (error: any) {
-          // Skip if sport already exists (duplicate name)
-          if (!error.message?.includes('duplicate') && !error.message?.includes('unique')) {
-            console.error(`Error creating sport ${sportData.name}:`, error);
-          }
-        }
-      }
-      console.log(`✓ Created ${sportsCreated} sports in database`);
-    } else {
-      console.log(`✓ Sports already exist in database (${existingSports.length} found)`);
-    }
+    // Sports initialization removed - teams now store sport as string field directly
+    console.log("✓ Sports table removed - teams are now standalone with sport string fields");
     
     console.log("✓ Base data initialization completed successfully");
     
