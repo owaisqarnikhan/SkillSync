@@ -1,11 +1,26 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { User, Lock, AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import type { SystemConfig } from "@shared/schema";
+
+const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
 
 export default function SecureLogin() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,8 +39,33 @@ export default function SecureLogin() {
     }
   }, [isAuthenticated, isLoading, setLocation]);
 
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  const [loginError, setLoginError] = useState("");
+  
+  const form = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginForm) => {
+      const res = await apiRequest("POST", "/api/login", credentials);
+      return await res.json();
+    },
+    onSuccess: () => {
+      // Force a page reload to refresh authentication state
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      setLoginError(error.message || "Login failed. Please check your credentials.");
+    },
+  });
+
+  const onSubmit = (data: LoginForm) => {
+    setLoginError("");
+    loginMutation.mutate(data);
   };
 
   if (isLoading) {
@@ -85,50 +125,91 @@ export default function SecureLogin() {
                     </h2>
                   </div>
 
-                  {/* Description */}
-                  <div className="space-y-4 text-center lg:text-left">
-                    <p className="text-lg text-gray-600 leading-relaxed">
-                      Secure access for national teams, venue managers, and system administrators. 
-                      Efficiently manage training venue bookings and schedules for the games.
-                    </p>
+                  {/* Login Form */}
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    {loginError && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{loginError}</AlertDescription>
+                      </Alert>
+                    )}
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <span className="text-blue-600 font-semibold text-lg">1</span>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="username">Username</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="username"
+                            placeholder="Enter your username"
+                            className="pl-10"
+                            {...form.register("username")}
+                            data-testid="username-input"
+                          />
                         </div>
-                        <p className="text-sm text-gray-600 font-medium">Secure Login</p>
+                        {form.formState.errors.username && (
+                          <p className="text-sm text-red-600 mt-1">
+                            {form.formState.errors.username.message}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <span className="text-green-600 font-semibold text-lg">2</span>
+                      
+                      <div>
+                        <Label htmlFor="password">Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="password"
+                            type="password"
+                            placeholder="Enter your password"
+                            className="pl-10"
+                            {...form.register("password")}
+                            data-testid="password-input"
+                          />
                         </div>
-                        <p className="text-sm text-gray-600 font-medium">Book Venues</p>
+                        {form.formState.errors.password && (
+                          <p className="text-sm text-red-600 mt-1">
+                            {form.formState.errors.password.message}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <span className="text-purple-600 font-semibold text-lg">3</span>
-                        </div>
-                        <p className="text-sm text-gray-600 font-medium">Manage Training</p>
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      size="lg"
+                      disabled={loginMutation.isPending}
+                      data-testid="login-button"
+                    >
+                      {loginMutation.isPending ? "Signing In..." : "Sign In"}
+                    </Button>
+                  </form>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <span className="text-blue-600 font-semibold text-lg">1</span>
                       </div>
+                      <p className="text-sm text-gray-600 font-medium">Secure Login</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <span className="text-green-600 font-semibold text-lg">2</span>
+                      </div>
+                      <p className="text-sm text-gray-600 font-medium">Book Venues</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <span className="text-purple-600 font-semibold text-lg">3</span>
+                      </div>
+                      <p className="text-sm text-gray-600 font-medium">Manage Training</p>
                     </div>
                   </div>
 
-                  {/* Login Button */}
-                  <div className="pt-6">
-                    <Button 
-                      onClick={handleLogin}
-                      size="lg"
-                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-4 text-lg rounded-lg shadow-lg transition-all duration-200"
-                      data-testid="secure-login-button"
-                    >
-                      Secure Login with Replit
-                    </Button>
-                    
-                    <p className="text-xs text-gray-500 text-center mt-4">
-                      By logging in, you agree to the terms of service and privacy policy
-                    </p>
-                  </div>
+                  <p className="text-xs text-gray-500 text-center mt-6">
+                    By logging in, you agree to the terms of service and privacy policy
+                  </p>
                 </div>
               </div>
 

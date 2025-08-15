@@ -29,10 +29,12 @@ export const sessions = pgTable(
 // User roles enum
 export const userRoleEnum = pgEnum('user_role', ['superadmin', 'manager', 'user', 'customer']);
 
-// Users table for Replit Auth and role management
+// Users table for custom authentication and role management
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 50 }).unique().notNull(),
   email: varchar("email").unique(),
+  password: varchar("password").notNull(), // Hashed password
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),

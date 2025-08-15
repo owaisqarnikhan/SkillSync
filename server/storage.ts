@@ -41,8 +41,11 @@ import { db } from "./db";
 import { eq, and, gte, lte, desc, asc, or, sql, not } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
+  // User operations (custom authentication)
   getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: { username: string; password: string; email?: string | null; firstName?: string | null; lastName?: string | null; role?: 'superadmin' | 'manager' | 'user' | 'customer'; countryCode?: string | null }): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Country operations
@@ -118,6 +121,33 @@ export class DatabaseStorage implements IStorage {
   // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(userData: { username: string; password: string; email?: string | null; firstName?: string | null; lastName?: string | null; role?: 'superadmin' | 'manager' | 'user' | 'customer'; countryCode?: string | null }): Promise<User> {
+    const [user] = await db.insert(users).values({
+      username: userData.username,
+      password: userData.password,
+      email: userData.email || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      role: userData.role || 'customer',
+      countryCode: userData.countryCode || null,
+    }).returning();
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
     return user;
   }
 
