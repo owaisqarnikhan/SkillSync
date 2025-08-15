@@ -11,8 +11,11 @@ import {
   insertNotificationSchema,
   insertAuditLogSchema,
   insertSportSchema,
+  insertVenueTypeSchema,
   type Sport,
   type InsertSport,
+  type VenueType,
+  type InsertVenueType,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -228,7 +231,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sports routes removed - teams are now standalone
+  // Venue Types routes
+  app.get('/api/venue-types', isAuthenticated, async (req, res) => {
+    try {
+      const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
+      const venueTypes = await storage.getVenueTypes(isActive);
+      res.json(venueTypes);
+    } catch (error) {
+      console.error("Error fetching venue types:", error);
+      res.status(500).json({ message: "Failed to fetch venue types" });
+    }
+  });
+
+  app.post('/api/venue-types', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const validatedData = insertVenueTypeSchema.parse(req.body);
+      const venueType = await storage.createVenueType(validatedData);
+      
+      await createAuditLog(req, 'CREATE', 'venue_type', venueType.id, null, validatedData);
+      
+      res.status(201).json(venueType);
+    } catch (error) {
+      console.error("Error creating venue type:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create venue type" });
+    }
+  });
+
+  app.put('/api/venue-types/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const validatedData = insertVenueTypeSchema.partial().parse(req.body);
+      const venueType = await storage.updateVenueType(req.params.id, validatedData);
+      
+      await createAuditLog(req, 'UPDATE', 'venue_type', venueType.id, null, validatedData);
+      
+      res.json(venueType);
+    } catch (error) {
+      console.error("Error updating venue type:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update venue type" });
+    }
+  });
+
+  app.delete('/api/venue-types/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteVenueType(req.params.id);
+      
+      await createAuditLog(req, 'DELETE', 'venue_type', req.params.id, null, null);
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting venue type:", error);
+      res.status(500).json({ message: "Failed to delete venue type" });
+    }
+  });
+
+  // Object Storage routes
+  app.get("/public-objects/:filePath(*)", async (req, res) => {
+    const filePath = req.params.filePath;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for public object:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    res.json({ uploadURL });
+  });
 
   // Teams routes
   app.get('/api/teams', isAuthenticated, async (req: any, res) => {

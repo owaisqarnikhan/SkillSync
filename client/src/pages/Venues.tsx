@@ -46,7 +46,7 @@ import {
   Upload,
   Image
 } from "lucide-react";
-import type { VenueWithDetails, BookingWithDetails, InsertVenue } from "@shared/schema";
+import type { VenueWithDetails, BookingWithDetails, InsertVenue, VenueType } from "@shared/schema";
 import BookingModal from "@/components/BookingModal";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { format, startOfDay, endOfDay } from "date-fns";
@@ -64,17 +64,7 @@ const venueIcons = {
   other: MapPin,
 };
 
-const venueTypeLabels = {
-  swimming_pool: "Swimming Pool",
-  athletics_track: "Athletics Track",
-  basketball_court: "Basketball Court",
-  volleyball_court: "Volleyball Court",
-  badminton_hall: "Badminton Hall",
-  tennis_court: "Tennis Court",
-  football_field: "Football Field",
-  gym: "Gymnasium",
-  other: "Other",
-};
+// Dynamic venue type labels - will be populated from API
 
 export default function Venues() {
   const { toast } = useToast();
@@ -90,6 +80,7 @@ export default function Venues() {
   const [selectedVenue, setSelectedVenue] = useState<VenueWithDetails | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<InsertVenue>>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -108,6 +99,11 @@ export default function Venues() {
 
   const { data: venues = [], isLoading: venuesLoading } = useQuery<VenueWithDetails[]>({
     queryKey: ["/api/venues"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: venueTypes = [] } = useQuery<VenueType[]>({
+    queryKey: ["/api/venue-types"],
     enabled: isAuthenticated,
   });
 
@@ -186,9 +182,15 @@ export default function Venues() {
     }
   };
 
+  // Get venue type name helper
+  const getVenueTypeName = (typeId: string) => {
+    const venueType = venueTypes.find(vt => vt.id === typeId);
+    return venueType?.name || 'Unknown Type';
+  };
+
   // Filter venues based on type and search term
   const filteredVenues = venues.filter(venue => {
-    const typeMatch = typeFilter === "all" || venue.type === typeFilter;
+    const typeMatch = typeFilter === "all" || venue.venueTypeId === typeFilter;
     const searchMatch = searchTerm === "" || 
       venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       venue.location?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -205,7 +207,7 @@ export default function Venues() {
     setSelectedVenue(venue);
     setEditFormData({
       name: venue.name,
-      type: venue.type,
+      venueTypeId: venue.venueTypeId,
       location: venue.location || '',
       capacity: venue.capacity,
       description: venue.description || '',
@@ -214,6 +216,7 @@ export default function Venues() {
       workingEndTime: venue.workingEndTime,
       bufferTimeMinutes: venue.bufferTimeMinutes,
       imageUrl: venue.imageUrl || '',
+      attachmentUrl: venue.attachmentUrl || '',
     });
     setEditModalOpen(true);
   };
@@ -288,6 +291,32 @@ export default function Venues() {
     }
   };
 
+  const handleAttachmentUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    setIsUploadingAttachment(true);
+    try {
+      if (result.successful && result.successful.length > 0) {
+        const uploadedFile = result.successful[0];
+        const uploadURL = uploadedFile.uploadURL;
+        
+        // Update the form data with the new attachment URL
+        setEditFormData(prev => ({ ...prev, attachmentUrl: uploadURL }));
+        
+        toast({
+          title: "Attachment Uploaded",
+          description: "Venue attachment has been uploaded successfully.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload venue attachment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -331,15 +360,11 @@ export default function Venues() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="swimming_pool">Swimming Pool</SelectItem>
-                    <SelectItem value="athletics_track">Athletics Track</SelectItem>
-                    <SelectItem value="basketball_court">Basketball Court</SelectItem>
-                    <SelectItem value="volleyball_court">Volleyball Court</SelectItem>
-                    <SelectItem value="badminton_hall">Badminton Hall</SelectItem>
-                    <SelectItem value="tennis_court">Tennis Court</SelectItem>
-                    <SelectItem value="football_field">Football Field</SelectItem>
-                    <SelectItem value="gym">Gymnasium</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {venueTypes.map((venueType) => (
+                      <SelectItem key={venueType.id} value={venueType.id}>
+                        {venueType.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -396,7 +421,7 @@ export default function Venues() {
                             {venue.name}
                           </CardTitle>
                           <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {venueTypeLabels[venue.type]}
+                            {getVenueTypeName(venue.venueTypeId)}
                           </p>
                         </div>
                       </div>
@@ -575,22 +600,18 @@ export default function Venues() {
               <div className="grid gap-2">
                 <Label htmlFor="type">Venue Type</Label>
                 <Select
-                  value={editFormData.type || ''}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, type: value as any })}
+                  value={editFormData.venueTypeId || ''}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, venueTypeId: value })}
                 >
                   <SelectTrigger data-testid="edit-venue-type">
                     <SelectValue placeholder="Select venue type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="swimming_pool">Swimming Pool</SelectItem>
-                    <SelectItem value="athletics_track">Athletics Track</SelectItem>
-                    <SelectItem value="basketball_court">Basketball Court</SelectItem>
-                    <SelectItem value="volleyball_court">Volleyball Court</SelectItem>
-                    <SelectItem value="badminton_hall">Badminton Hall</SelectItem>
-                    <SelectItem value="tennis_court">Tennis Court</SelectItem>
-                    <SelectItem value="football_field">Football Field</SelectItem>
-                    <SelectItem value="gym">Gymnasium</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {venueTypes.map((venueType) => (
+                      <SelectItem key={venueType.id} value={venueType.id}>
+                        {venueType.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -643,6 +664,54 @@ export default function Venues() {
                   value={editFormData.description || ''}
                   onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                   data-testid="edit-venue-description"
+                />
+              </div>
+              
+              {/* Venue Attachment Upload */}
+              <div className="grid gap-2">
+                <Label>Additional Attachments</Label>
+                <div className="space-y-3">
+                  {editFormData.attachmentUrl && (
+                    <div className="text-sm text-muted-foreground">
+                      <a 
+                        href={editFormData.attachmentUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        View Current Attachment
+                      </a>
+                    </div>
+                  )}
+                  
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={10485760} // 10MB
+                    onGetUploadParameters={handleGetUploadParameters}
+                    onComplete={handleAttachmentUploadComplete}
+                    buttonClassName="w-full"
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <Upload className="w-4 h-4" />
+                      <span>{isUploadingAttachment ? "Uploading..." : "Upload Attachment"}</span>
+                    </div>
+                  </ObjectUploader>
+                  
+                  <div className="text-xs text-muted-foreground">
+                    Upload additional documents, floor plans, or other venue-related files
+                  </div>
+                </div>
+              </div>
+              
+              {/* Image URL field for direct URL input */}
+              <div className="grid gap-2">
+                <Label htmlFor="imageUrl">Image URL (Optional)</Label>
+                <Input
+                  id="imageUrl"
+                  value={editFormData.imageUrl || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, imageUrl: e.target.value })}
+                  placeholder="Enter direct image URL"
+                  data-testid="edit-venue-image-url"
                 />
               </div>
             </div>

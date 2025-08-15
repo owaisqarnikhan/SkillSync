@@ -92,6 +92,7 @@ export class ObjectStorageService {
     try {
       // Get file metadata
       const [metadata] = await file.getMetadata();
+      
       // Set appropriate headers
       res.set({
         "Content-Type": metadata.contentType || "application/octet-stream",
@@ -169,7 +170,9 @@ export class ObjectStorageService {
     return objectFile;
   }
 
-  normalizeObjectEntityPath(rawPath: string): string {
+  normalizeObjectEntityPath(
+    rawPath: string,
+  ): string {
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
       return rawPath;
     }

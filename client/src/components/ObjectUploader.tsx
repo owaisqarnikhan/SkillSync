@@ -64,7 +64,6 @@ export function ObjectUploader({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
-        allowedFileTypes: ['image/*'],
       },
       autoProceed: false,
     })
@@ -74,7 +73,6 @@ export function ObjectUploader({
       })
       .on("complete", (result) => {
         onComplete?.(result);
-        setShowModal(false);
       })
   );
 

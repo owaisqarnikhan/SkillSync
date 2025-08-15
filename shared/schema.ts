@@ -67,13 +67,12 @@ export const sports = pgTable("sports", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Teams table (standalone - no sports dependency)
+// Teams table (now links to sports table)
 export const teams = pgTable("teams", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull(),
   countryId: varchar("country_id").notNull().references(() => countries.id),
-  sport: varchar("sport", { length: 100 }), // Sport name as string instead of reference
-  category: varchar("category", { length: 50 }), // e.g., "Aquatics", "Athletics"
+  sportId: varchar("sport_id").notNull().references(() => sports.id),
   managerId: varchar("manager_id").references(() => users.id), // Team manager
   memberCount: integer("member_count").default(0).notNull(),
   description: text("description"),
@@ -82,21 +81,26 @@ export const teams = pgTable("teams", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Venue types enum
-export const venueTypeEnum = pgEnum('venue_type', [
-  'swimming_pool', 'athletics_track', 'basketball_court', 'volleyball_court', 
-  'badminton_hall', 'tennis_court', 'football_field', 'gym', 'other'
-]);
+// Venue types table (replaces enum for better management)
+export const venueTypes = pgTable("venue_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 // Venues table
 export const venues = pgTable("venues", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull(),
-  type: venueTypeEnum("type").notNull(),
+  venueTypeId: varchar("venue_type_id").notNull().references(() => venueTypes.id),
   location: varchar("location", { length: 200 }),
   capacity: integer("capacity").notNull(),
   description: text("description"),
-  imageUrl: varchar("image_url"), // Venue image
+  imageUrl: varchar("image_url"), // Venue image URL
+  attachmentUrl: varchar("attachment_url"), // Venue attachment file URL
   amenities: text("amenities").array(), // Array of amenity strings
   workingStartTime: time("working_start_time").default('06:00').notNull(),
   workingEndTime: time("working_end_time").default('22:00').notNull(),
@@ -226,12 +230,18 @@ export const countriesRelations = relations(countries, ({ many }) => ({
   teams: many(teams),
 }));
 
-// Sports relations removed - teams are now standalone
+export const venueTypesRelations = relations(venueTypes, ({ many }) => ({
+  venues: many(venues),
+}));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
   country: one(countries, {
     fields: [teams.countryId],
     references: [countries.id],
+  }),
+  sport: one(sports, {
+    fields: [teams.sportId],
+    references: [sports.id],
   }),
   manager: one(users, {
     fields: [teams.managerId],
@@ -242,6 +252,10 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
 }));
 
 export const venuesRelations = relations(venues, ({ one, many }) => ({
+  venueType: one(venueTypes, {
+    fields: [venues.venueTypeId],
+    references: [venueTypes.id],
+  }),
   manager: one(users, {
     fields: [venues.managerId],
     references: [users.id],
@@ -336,6 +350,12 @@ export const insertTeamSchema = createInsertSchema(teams).omit({
   updatedAt: true,
 });
 
+export const insertVenueTypeSchema = createInsertSchema(venueTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertVenueSchema = createInsertSchema(venues).omit({
   id: true,
   createdAt: true,
@@ -389,6 +409,7 @@ export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Country = typeof countries.$inferSelect;
 export type Sport = typeof sports.$inferSelect;
+export type VenueType = typeof venueTypes.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
@@ -401,6 +422,7 @@ export type DashboardPermission = typeof dashboardPermissions.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCountry = z.infer<typeof insertCountrySchema>;
 export type InsertSport = z.infer<typeof insertSportSchema>;
+export type InsertVenueType = z.infer<typeof insertVenueTypeSchema>;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type InsertVenue = z.infer<typeof insertVenueSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
@@ -420,10 +442,12 @@ export type BookingWithDetails = Booking & {
 
 export type TeamWithDetails = Team & {
   country: Country;
+  sport?: Sport;
   manager?: User;
 };
 
 export type VenueWithDetails = Venue & {
+  venueType?: VenueType;
   manager?: User;
 };
 

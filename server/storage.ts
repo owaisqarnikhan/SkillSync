@@ -4,6 +4,7 @@ import {
   sports,
   teams,
   venues,
+  venueTypes,
   bookings,
   venueBlackouts,
   notifications,
@@ -16,6 +17,8 @@ import {
   type InsertCountry,
   type Sport,
   type InsertSport,
+  type VenueType,
+  type InsertVenueType,
   type Team,
   type InsertTeam,
   type TeamWithDetails,
@@ -70,6 +73,13 @@ export interface IStorage {
   createSport(sport: InsertSport): Promise<Sport>;
   updateSport(id: string, updates: Partial<InsertSport>): Promise<Sport>;
   deleteSport(id: string): Promise<void>;
+  
+  // Venue Types operations
+  getVenueTypes(isActive?: boolean): Promise<VenueType[]>;
+  getVenueType(id: string): Promise<VenueType | undefined>;
+  createVenueType(venueType: InsertVenueType): Promise<VenueType>;
+  updateVenueType(id: string, updates: Partial<InsertVenueType>): Promise<VenueType>;
+  deleteVenueType(id: string): Promise<void>;
   
   // Venue operations
   getVenues(isActive?: boolean): Promise<VenueWithDetails[]>;
@@ -242,7 +252,37 @@ export class DatabaseStorage implements IStorage {
     await db.delete(sports).where(eq(sports.id, id));
   }
 
-  // Sport operations removed - teams are now standalone
+  // Venue Types operations
+  async getVenueTypes(isActive?: boolean): Promise<VenueType[]> {
+    const query = db.select().from(venueTypes);
+    if (isActive !== undefined) {
+      query.where(eq(venueTypes.isActive, isActive));
+    }
+    return await query.orderBy(asc(venueTypes.name));
+  }
+
+  async getVenueType(id: string): Promise<VenueType | undefined> {
+    const [venueType] = await db.select().from(venueTypes).where(eq(venueTypes.id, id));
+    return venueType;
+  }
+
+  async createVenueType(venueTypeData: InsertVenueType): Promise<VenueType> {
+    const [venueType] = await db.insert(venueTypes).values(venueTypeData).returning();
+    return venueType;
+  }
+
+  async updateVenueType(id: string, updates: Partial<InsertVenueType>): Promise<VenueType> {
+    const [venueType] = await db
+      .update(venueTypes)
+      .set(updates)
+      .where(eq(venueTypes.id, id))
+      .returning();
+    return venueType;
+  }
+
+  async deleteVenueType(id: string): Promise<void> {
+    await db.delete(venueTypes).where(eq(venueTypes.id, id));
+  }
 
   // Team operations
   async getTeams(countryCode?: string): Promise<TeamWithDetails[]> {
@@ -251,8 +291,7 @@ export class DatabaseStorage implements IStorage {
         id: teams.id,
         name: teams.name,
         countryId: teams.countryId,
-        sport: teams.sport,
-        category: teams.category,
+        sportId: teams.sportId,
         managerId: teams.managerId,
         memberCount: teams.memberCount,
         description: teams.description,
@@ -260,12 +299,12 @@ export class DatabaseStorage implements IStorage {
         createdAt: teams.createdAt,
         updatedAt: teams.updatedAt,
         country: countries,
-        // sport field now part of teams table
+        sport: sports,
         manager: users,
       })
       .from(teams)
       .innerJoin(countries, eq(teams.countryId, countries.id))
-      // sports join removed - sport is now a string field
+      .leftJoin(sports, eq(teams.sportId, sports.id))
       .leftJoin(users, eq(teams.managerId, users.id));
 
     const conditions = [eq(teams.isActive, true)];
@@ -342,11 +381,12 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: venues.id,
         name: venues.name,
-        type: venues.type,
+        venueTypeId: venues.venueTypeId,
         location: venues.location,
         capacity: venues.capacity,
         description: venues.description,
         imageUrl: venues.imageUrl,
+        attachmentUrl: venues.attachmentUrl,
         amenities: venues.amenities,
         workingStartTime: venues.workingStartTime,
         workingEndTime: venues.workingEndTime,
@@ -356,15 +396,18 @@ export class DatabaseStorage implements IStorage {
         createdAt: venues.createdAt,
         updatedAt: venues.updatedAt,
         manager: users,
+        venueType: venueTypes,
       })
       .from(venues)
       .leftJoin(users, eq(venues.managerId, users.id))
+      .leftJoin(venueTypes, eq(venues.venueTypeId, venueTypes.id))
       .where(eq(venues.isActive, isActive))
       .orderBy(asc(venues.name));
 
     return results.map(row => ({
       ...row,
       manager: row.manager || undefined,
+      venueType: row.venueType || undefined,
     }));
   }
 
@@ -373,11 +416,12 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: venues.id,
         name: venues.name,
-        type: venues.type,
+        venueTypeId: venues.venueTypeId,
         location: venues.location,
         capacity: venues.capacity,
         description: venues.description,
         imageUrl: venues.imageUrl,
+        attachmentUrl: venues.attachmentUrl,
         amenities: venues.amenities,
         workingStartTime: venues.workingStartTime,
         workingEndTime: venues.workingEndTime,
@@ -387,9 +431,11 @@ export class DatabaseStorage implements IStorage {
         createdAt: venues.createdAt,
         updatedAt: venues.updatedAt,
         manager: users,
+        venueType: venueTypes,
       })
       .from(venues)
       .leftJoin(users, eq(venues.managerId, users.id))
+      .leftJoin(venueTypes, eq(venues.venueTypeId, venueTypes.id))
       .where(eq(venues.id, id));
 
     if (!result) return undefined;
@@ -397,6 +443,7 @@ export class DatabaseStorage implements IStorage {
     return {
       ...result,
       manager: result.manager || undefined,
+      venueType: result.venueType || undefined,
     };
   }
 

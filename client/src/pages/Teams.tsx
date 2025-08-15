@@ -54,7 +54,7 @@ import {
   MoreVertical,
   Plus
 } from "lucide-react";
-import type { TeamWithDetails, Country, InsertTeam } from "@shared/schema";
+import type { TeamWithDetails, Country, Sport, InsertTeam } from "@shared/schema";
 
 export default function Teams() {
   const { toast } = useToast();
@@ -94,7 +94,10 @@ export default function Teams() {
     enabled: isAuthenticated,
   });
 
-  // Sports query removed - teams now store sport as string field directly
+  const { data: sports = [] } = useQuery<Sport[]>({
+    queryKey: ["/api/sports"],
+    enabled: isAuthenticated,
+  });
 
   // Mutations
   const updateTeamMutation = useMutation({
@@ -139,11 +142,11 @@ export default function Teams() {
   // Filter teams based on country, sport, and search term
   const filteredTeams = teams.filter(team => {
     const countryMatch = countryFilter === "all" || team.country.code === countryFilter;
-    const sportMatch = sportFilter === "all" || (team.sport && team.sport.toLowerCase().includes(sportFilter.toLowerCase()));
+    const sportMatch = sportFilter === "all" || (team.sport && team.sport.name.toLowerCase().includes(sportFilter.toLowerCase()));
     const searchMatch = searchTerm === "" || 
       team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (team.sport && team.sport.toLowerCase().includes(searchTerm.toLowerCase()));
+      (team.sport && team.sport.name.toLowerCase().includes(searchTerm.toLowerCase()));
     return countryMatch && sportMatch && searchMatch;
   });
 
@@ -153,8 +156,7 @@ export default function Teams() {
     setEditFormData({
       name: team.name,
       countryId: team.countryId,
-      sport: team.sport,
-      category: team.category,
+      sportId: team.sportId,
       managerId: team.managerId || undefined,
       memberCount: team.memberCount,
       description: team.description || '',
@@ -300,7 +302,7 @@ export default function Teams() {
                           {team.country.name}
                         </Badge>
                         <Badge variant="secondary" className="text-xs truncate max-w-16 sm:max-w-none">
-                          {team.sport || 'No sport'}
+                          {team.sport?.name || 'No sport'}
                         </Badge>
                       </div>
                     </div>
@@ -319,7 +321,7 @@ export default function Teams() {
                       <div className="flex items-center space-x-2 text-sm">
                         <Trophy className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">
-                          {team.category || 'Sports'}
+                          {team.sport?.category || 'Sports'}
                         </span>
                       </div>
                     </div>
@@ -409,7 +411,7 @@ export default function Teams() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-warning">
-                    {new Set(filteredTeams.map(t => t.sport).filter(s => s)).size}
+                    {new Set(filteredTeams.map(t => t.sport?.id).filter(s => s)).size}
                   </p>
                   <p className="text-sm text-muted-foreground">Sports</p>
                 </div>
@@ -457,23 +459,21 @@ export default function Teams() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="sport">Sport</Label>
-                <Input
-                  id="sport"
-                  value={editFormData.sport || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, sport: e.target.value })}
-                  placeholder="Enter sport name (e.g., Swimming, Basketball)"
-                  data-testid="edit-team-sport"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={editFormData.category || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
-                  placeholder="Enter sport category (e.g., Aquatics, Ball Sports)"
-                  data-testid="edit-team-category"
-                />
+                <Select
+                  value={editFormData.sportId || ''}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, sportId: value })}
+                >
+                  <SelectTrigger data-testid="edit-team-sport">
+                    <SelectValue placeholder="Select sport" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sports.map((sport) => (
+                      <SelectItem key={sport.id} value={sport.id}>
+                        {sport.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="memberCount">Member Count</Label>
