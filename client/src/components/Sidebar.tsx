@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import type { SystemConfig } from "@shared/schema";
 import { 
   Trophy, 
   Globe, 
@@ -50,6 +51,12 @@ export default function Sidebar() {
       if (!response.ok) throw new Error("Failed to fetch notifications");
       return response.json();
     },
+  });
+
+  // Fetch system configuration for logo
+  const { data: systemConfig } = useQuery<SystemConfig>({
+    queryKey: ["/api/system/config"],
+    enabled: isAuthenticated,
   });
 
   const unreadCount = notifications?.length || 0;
@@ -107,8 +114,17 @@ export default function Sidebar() {
       <div className="px-4 py-6 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-              <Trophy className="text-white text-lg" data-testid="sidebar-logo" />
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+              {systemConfig?.logoUrl ? (
+                <img 
+                  src={systemConfig.logoUrl}
+                  alt="Dashboard Logo"
+                  className="w-full h-full object-contain"
+                  data-testid="sidebar-logo-image"
+                />
+              ) : (
+                <Trophy className="text-white text-lg" data-testid="sidebar-logo" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="font-bold text-sm text-gray-900 truncate">Training System</h1>

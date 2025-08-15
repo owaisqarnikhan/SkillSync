@@ -23,10 +23,13 @@ import {
 } from "lucide-react";
 import type { BookingWithDetails, VenueWithDetails, TeamWithDetails, NotificationWithDetails } from "@shared/schema";
 import { format, parseISO, isAfter } from "date-fns";
+import { useLocation } from "wouter";
 
 export default function UserDashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Redirect if not User/Customer
   useEffect(() => {
@@ -69,8 +72,8 @@ export default function UserDashboard() {
 
   // Fetch teams for user's country
   const { data: teams = [] } = useQuery<TeamWithDetails[]>({
-    queryKey: ["/api/teams", { country: user?.countryCode }],
-    enabled: isAuthenticated && !!user?.countryCode,
+    queryKey: ["/api/teams"],
+    enabled: isAuthenticated,
   });
 
   // Filter upcoming bookings
@@ -184,8 +187,8 @@ export default function UserDashboard() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto">
             <TabsTrigger value="overview" data-testid="overview-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <Calendar className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">Overview</span>
@@ -197,6 +200,10 @@ export default function UserDashboard() {
             <TabsTrigger value="venues" data-testid="browse-venues-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <MapPin className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">Venues</span>
+            </TabsTrigger>
+            <TabsTrigger value="teams" data-testid="teams-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Users className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Teams</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" data-testid="notifications-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <Bell className="w-4 h-4 flex-shrink-0" />
@@ -280,19 +287,39 @@ export default function UserDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" data-testid="quick-book-venue">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" 
+                    onClick={() => setActiveTab("venues")}
+                    data-testid="quick-book-venue"
+                  >
                     <Calendar className="w-5 h-5" />
                     <span className="text-xs font-medium">Book Venue</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" data-testid="quick-view-bookings">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" 
+                    onClick={() => setActiveTab("bookings")}
+                    data-testid="quick-view-bookings"
+                  >
                     <CheckCircle className="w-5 h-5" />
                     <span className="text-xs font-medium">Bookings</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" data-testid="quick-browse-venues">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" 
+                    onClick={() => setActiveTab("venues")}
+                    data-testid="quick-browse-venues"
+                  >
                     <MapPin className="w-5 h-5" />
                     <span className="text-xs font-medium">Venues</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" data-testid="quick-view-teams">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" 
+                    onClick={() => setActiveTab("teams")}
+                    data-testid="quick-view-teams"
+                  >
                     <Users className="w-5 h-5" />
                     <span className="text-xs font-medium">Teams</span>
                   </Button>
@@ -346,7 +373,7 @@ export default function UserDashboard() {
                     <p className="text-muted-foreground mb-6">
                       Start by booking a training venue for your team.
                     </p>
-                    <Button data-testid="book-first-venue">
+                    <Button onClick={() => setLocation("/venues")} data-testid="book-first-venue">
                       <Calendar className="w-4 h-4 mr-2" />
                       Book Your First Venue
                     </Button>
@@ -363,17 +390,39 @@ export default function UserDashboard() {
                 <CardTitle>Available Training Venues</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-900 mb-2">Venue Browser</p>
-                  <p className="text-muted-foreground mb-6">
-                    Browse and book training venues will be available here.
-                  </p>
-                  <Button data-testid="browse-all-venues">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Browse All Venues
-                  </Button>
-                </div>
+                {venues.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {venues.map((venue) => (
+                      <div key={venue.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow" data-testid={`venue-${venue.id}`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium">{venue.name}</h4>
+                          <Badge variant="outline">{venue.capacity} people</Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>{venue.location}</span>
+                          </div>
+                          {venue.description && (
+                            <p className="text-xs text-gray-500 mt-2">{venue.description}</p>
+                          )}
+                        </div>
+                        <Button size="sm" className="w-full mt-3" onClick={() => setLocation(`/venues/${venue.id}`)}>
+                          <Calendar className="w-3 h-3 mr-1" />
+                          Book Now
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">No Venues Available</p>
+                    <p className="text-muted-foreground mb-6">
+                      No training venues are currently configured. Contact your administrator.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -414,6 +463,51 @@ export default function UserDashboard() {
                     <p className="text-lg font-medium text-gray-900 mb-2">No Notifications</p>
                     <p className="text-muted-foreground">
                       You'll receive notifications about your bookings and system updates here.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Teams Tab */}
+          <TabsContent value="teams">
+            <Card>
+              <CardHeader>
+                <CardTitle>Team Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {teams.length > 0 ? (
+                  <div className="space-y-4">
+                    {teams.map((team) => (
+                      <div key={team.id} className="border rounded-lg p-4" data-testid={`team-${team.id}`}>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h4 className="font-medium">{team.name}</h4>
+                              <Badge variant="outline">{team.sport.name}</Badge>
+                            </div>
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <div>Country: {team.country.name}</div>
+                              <div>Members: {team.memberCount || 0}</div>
+                              {team.manager && (
+                                <div>Manager: {team.manager.firstName} {team.manager.lastName}</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {team.description && (
+                          <p className="text-sm text-gray-500 mt-2">{team.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">No Teams Found</p>
+                    <p className="text-muted-foreground">
+                      No teams are available for your country. Contact your administrator.
                     </p>
                   </div>
                 )}

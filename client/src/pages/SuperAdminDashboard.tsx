@@ -545,7 +545,7 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Users</p>
-                  <p className="text-2xl font-bold">--</p>
+                  <p className="text-2xl font-bold">{allUsers.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -573,7 +573,7 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Venues</p>
-                  <p className="text-2xl font-bold">{(stats as any)?.availableVenues || 0}</p>
+                  <p className="text-2xl font-bold">{venues.length}</p>
                 </div>
               </div>
             </CardContent>
