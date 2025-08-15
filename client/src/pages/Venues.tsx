@@ -52,16 +52,20 @@ import { ObjectUploader } from "@/components/ObjectUploader";
 import { format, startOfDay, endOfDay } from "date-fns";
 import type { UploadResult } from "@uppy/core";
 
-const venueIcons = {
-  swimming_pool: Waves,
-  athletics_track: Footprints,
-  basketball_court: CircleDot,
-  volleyball_court: Activity,
-  badminton_hall: Activity,
-  tennis_court: CircleDot,
-  football_field: CircleDot,
-  gym: Dumbbell,
-  other: MapPin,
+const venueIcons: Record<string, any> = {
+  'Swimming Pool': Waves,
+  'Athletics Track': Footprints,
+  'Basketball Court': CircleDot,
+  'Volleyball Court': Activity,
+  'Badminton Hall': Activity,
+  'Tennis Court': CircleDot,
+  'Football Field': CircleDot,
+  'Gym': Dumbbell,
+  'Pool': Waves,
+  'Track': Footprints,
+  'Court': CircleDot,
+  'Hall': Activity,
+  'Field': CircleDot,
 };
 
 // Dynamic venue type labels - will be populated from API
@@ -396,7 +400,8 @@ export default function Venues() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredVenues.map((venue) => {
-              const Icon = venueIcons[venue.type] || MapPin;
+              const venueTypeName = venue.venueType?.name || getVenueTypeName(venue.venueTypeId);
+              const Icon = venueIcons[venueTypeName] || MapPin;
               const availability = getVenueAvailability(venue);
 
               return (

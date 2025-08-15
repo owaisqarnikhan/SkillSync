@@ -318,7 +318,7 @@ export class DatabaseStorage implements IStorage {
     return results.map(row => ({
       ...row,
       country: row.country,
-      sport: row.sport,
+      sport: row.sport || undefined,
       manager: row.manager || undefined,
     }));
   }
@@ -329,8 +329,7 @@ export class DatabaseStorage implements IStorage {
         id: teams.id,
         name: teams.name,
         countryId: teams.countryId,
-        sport: teams.sport,
-        category: teams.category,
+        sportId: teams.sportId,
         managerId: teams.managerId,
         memberCount: teams.memberCount,
         description: teams.description,
@@ -338,12 +337,12 @@ export class DatabaseStorage implements IStorage {
         createdAt: teams.createdAt,
         updatedAt: teams.updatedAt,
         country: countries,
-        // sport field now part of teams table
+        sport: sports,
         manager: users,
       })
       .from(teams)
       .innerJoin(countries, eq(teams.countryId, countries.id))
-      // sports join removed - sport is now a string field
+      .leftJoin(sports, eq(teams.sportId, sports.id))
       .leftJoin(users, eq(teams.managerId, users.id))
       .where(eq(teams.id, id));
 
@@ -352,7 +351,7 @@ export class DatabaseStorage implements IStorage {
     return {
       ...result,
       country: result.country,
-      sport: result.sport,
+      sport: result.sport || undefined,
       manager: result.manager || undefined,
     };
   }
@@ -567,7 +566,6 @@ export class DatabaseStorage implements IStorage {
       team: {
         ...row.team,
         country: row.country,
-        // sport: now stored as string field in teams table
       },
       requester: row.requester,
       approver: row.approver || undefined,
@@ -634,7 +632,6 @@ export class DatabaseStorage implements IStorage {
       team: {
         ...result.team,
         country: result.country,
-        sport: result.sport,
       },
       requester: result.requester,
       approver: result.approver ? result.approver as User : undefined,

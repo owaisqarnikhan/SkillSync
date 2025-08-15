@@ -1272,6 +1272,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public route specifically for user profile images (no authentication required)
+  app.get("/profile-images/:objectPath(*)", async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    try {
+      // Convert the profile image path to the full object path
+      const fullPath = `/objects/${req.params.objectPath}`;
+      const objectFile = await objectStorageService.getObjectEntityFile(fullPath);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error accessing profile image:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
@@ -1295,8 +1312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Normalize the object path
       const objectPath = objectStorageService.normalizeObjectEntityPath(req.body.profileImageUrl);
       
-      // Update user profile image in database
-      await storage.updateUser(userId, { profileImageUrl: objectPath });
+      // Convert private object path to public profile image path
+      const publicProfileImagePath = objectPath.replace('/objects/', '/profile-images/');
+      
+      // Update user profile image in database with public path
+      await storage.updateUser(userId, { profileImageUrl: publicProfileImagePath });
       
       res.status(200).json({ 
         message: "Profile picture updated successfully",
