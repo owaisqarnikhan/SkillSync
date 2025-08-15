@@ -346,6 +346,54 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
                 </div>
+                
+                <Separator />
+                
+                <div>
+                  <h4 className="text-lg font-medium mb-4 flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5" />
+                    <span>Booking Duration Configuration</span>
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="twoHourLimitEnabled"
+                          checked={systemConfig.twoHourLimitEnabled ?? true}
+                          onChange={(e) => setSystemConfig(prev => ({ ...prev, twoHourLimitEnabled: e.target.checked }))}
+                          className="rounded border-gray-300"
+                          data-testid="two-hour-limit-checkbox"
+                        />
+                        <Label htmlFor="twoHourLimitEnabled">Enable 2-Hour Booking Limit</Label>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        When enabled, bookings are limited to a maximum of 2 hours per session.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="maxBookingDuration">Maximum Booking Duration (hours)</Label>
+                        <Input
+                          id="maxBookingDuration"
+                          type="number"
+                          min="1"
+                          max="8"
+                          value={systemConfig.maxBookingDuration || 2}
+                          onChange={(e) => setSystemConfig(prev => ({ ...prev, maxBookingDuration: parseInt(e.target.value) || 2 }))}
+                          placeholder="2"
+                          disabled={!systemConfig.twoHourLimitEnabled}
+                          data-testid="max-duration-input"
+                        />
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Set custom maximum duration when limit is enabled (1-8 hours).
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="flex justify-end">
                   <Button 

@@ -34,7 +34,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { Venue, TeamWithDetails } from "@shared/schema";
+import type { Venue, TeamWithDetails, SystemConfig } from "@shared/schema";
 import { format, addDays } from "date-fns";
 
 const bookingSchema = z.object({
@@ -42,7 +42,7 @@ const bookingSchema = z.object({
   teamId: z.string().min(1, "Please select a team"),
   date: z.string().min(1, "Please select a date"),
   startTime: z.string().min(1, "Please select start time"),
-  duration: z.enum(["1", "2"], { required_error: "Please select duration" }),
+  duration: z.string().min(1, "Please select duration"),
   participantCount: z.coerce.number().min(1, "Must have at least 1 participant").max(50, "Maximum 50 participants"),
   specialRequirements: z.string().optional(),
 });
@@ -68,17 +68,9 @@ export default function BookingModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const form = useForm<BookingFormData>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: {
-      venueId: selectedVenueId || "",
-      teamId: "",
-      date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(addDays(new Date(), 1), "yyyy-MM-dd"),
-      startTime: "",
-      duration: "2",
-      participantCount: 1,
-      specialRequirements: "",
-    },
+  // Fetch system configuration for duration settings
+  const { data: systemConfig } = useQuery<SystemConfig>({
+    queryKey: ["/api/system/config"],
   });
 
   // Fetch venues
@@ -89,6 +81,19 @@ export default function BookingModal({
   // Fetch teams
   const { data: teams = [] } = useQuery<TeamWithDetails[]>({
     queryKey: ["/api/teams"],
+  });
+
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      venueId: selectedVenueId || "",
+      teamId: "",
+      date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(addDays(new Date(), 1), "yyyy-MM-dd"),
+      startTime: "",
+      duration: systemConfig?.twoHourLimitEnabled ? (systemConfig?.maxBookingDuration?.toString() || "2") : "2",
+      participantCount: 1,
+      specialRequirements: "",
+    },
   });
 
   const createBookingMutation = useMutation({
@@ -256,8 +261,20 @@ export default function BookingModal({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="1" data-testid="duration-option-1">1 Hour</SelectItem>
-                        <SelectItem value="2" data-testid="duration-option-2">2 Hours (Maximum)</SelectItem>
+                        {systemConfig?.twoHourLimitEnabled ? (
+                          Array.from({ length: systemConfig.maxBookingDuration || 2 }, (_, i) => i + 1).map(hour => (
+                            <SelectItem key={hour} value={hour.toString()} data-testid={`duration-option-${hour}`}>
+                              {hour} Hour{hour > 1 ? 's' : ''}
+                              {hour === (systemConfig.maxBookingDuration || 2) ? ' (Maximum)' : ''}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          Array.from({ length: 8 }, (_, i) => i + 1).map(hour => (
+                            <SelectItem key={hour} value={hour.toString()} data-testid={`duration-option-${hour}`}>
+                              {hour} Hour{hour > 1 ? 's' : ''}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -354,7 +371,11 @@ export default function BookingModal({
                 <div className="space-y-1">
                   <p className="font-medium text-sm">Booking Rules:</p>
                   <ul className="text-xs sm:text-sm space-y-1 ml-4 list-disc">
-                    <li>Maximum 2 hours per booking session</li>
+                    {systemConfig?.twoHourLimitEnabled ? (
+                      <li>Maximum {systemConfig.maxBookingDuration || 2} hour{(systemConfig.maxBookingDuration || 2) > 1 ? 's' : ''} per booking session</li>
+                    ) : (
+                      <li>Flexible booking duration (up to 8 hours)</li>
+                    )}
                     <li>Bookings subject to manager approval</li>
                     <li>48-hour cancellation policy applies</li>
                     <li>Please arrive 15 minutes before scheduled time</li>

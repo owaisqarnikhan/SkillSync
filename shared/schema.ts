@@ -176,6 +176,7 @@ export const systemConfig = pgTable("system_config", {
   smtpFromName: varchar("smtp_from_name").default('Training Management System'),
   smtpSecure: boolean("smtp_secure").default(true).notNull(),
   twoHourLimitEnabled: boolean("two_hour_limit_enabled").default(true).notNull(),
+  maxBookingDuration: integer("max_booking_duration").default(2).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
