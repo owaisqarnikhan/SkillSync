@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import NotFound from "@/pages/not-found";
 import SecureLogin from "@/pages/SecureLogin";
@@ -18,6 +19,17 @@ import SystemAdmin from "@/pages/SystemAdmin";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Listen for sidebar collapse state changes
+  useEffect(() => {
+    const handleSidebarToggle = (event: CustomEvent) => {
+      setSidebarCollapsed(event.detail.collapsed);
+    };
+    
+    window.addEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+    return () => window.removeEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+  }, []);
 
   if (isLoading) {
     return (
@@ -59,8 +71,8 @@ function Router() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="mobile-sidebar-offset">
-        <main className="min-h-screen mobile-header">
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
+        <main className="min-h-screen">
           <Switch>
             {/* Main Dashboard - shows role-based dashboard */}
             <Route path="/" component={getDashboardComponent()} />

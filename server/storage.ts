@@ -784,17 +784,20 @@ export class DatabaseStorage implements IStorage {
     // First check if config exists
     const existing = await this.getSystemConfig();
     
+    // Remove any timestamp fields from configData to avoid conflicts
+    const { createdAt, updatedAt, ...cleanConfigData } = configData as any;
+    
     if (existing) {
       const [updated] = await db
         .update(systemConfig)
-        .set({ ...configData, updatedAt: new Date() })
+        .set({ ...cleanConfigData, updatedAt: new Date() })
         .where(eq(systemConfig.id, existing.id))
         .returning();
       return updated;
     } else {
       const [created] = await db
         .insert(systemConfig)
-        .values(configData)
+        .values(cleanConfigData)
         .returning();
       return created;
     }
