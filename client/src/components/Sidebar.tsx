@@ -107,12 +107,12 @@ export default function Sidebar() {
       <div className="px-4 py-6 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Trophy className="text-primary-foreground text-sm" data-testid="sidebar-logo" />
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+              <Trophy className="text-white text-lg" data-testid="sidebar-logo" />
             </div>
-            <div className="flex-1">
-              <h1 className="font-semibold text-sm text-gray-900">Training System</h1>
-              <p className="text-xs text-gray-500">Bahrain 2025</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-bold text-sm text-gray-900 truncate">Training System</h1>
+              <p className="text-xs text-gray-500 truncate">Bahrain Asian Youth Games 2025</p>
             </div>
           </div>
           {isMobile && (
@@ -176,7 +176,7 @@ export default function Sidebar() {
                 data-testid="nav-system-config"
               >
                 <Settings className="mr-2 h-4 w-4" />
-                System Config
+                System Admin
               </Button>
             </div>
           )}
@@ -266,7 +266,10 @@ export default function Sidebar() {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               
-              <DropdownMenuItem data-testid="profile-menu-item">
+              <DropdownMenuItem onClick={() => {
+                setLocation("/profile");
+                isMobile && setIsMobileOpen(false);
+              }} data-testid="profile-menu-item">
                 <User className="h-4 w-4 mr-2" />
                 Profile
               </DropdownMenuItem>
@@ -328,7 +331,7 @@ export default function Sidebar() {
     <>
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-50">
-        <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
+        <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white shadow-sm">
           <SidebarContent />
         </div>
       </div>
@@ -339,10 +342,10 @@ export default function Sidebar() {
           <Button
             variant="ghost"
             size="sm"
-            className="md:hidden fixed top-4 left-4 z-40 bg-white shadow-md"
+            className="md:hidden fixed top-4 left-4 z-40 bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 hover:bg-gray-50"
             data-testid="mobile-menu-button"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5 text-gray-700" />
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0 w-64">

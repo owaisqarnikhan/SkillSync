@@ -99,7 +99,7 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto mobile-container py-4 sm:py-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -125,7 +125,7 @@ export default function UserDashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+        <div className="grid mobile-stats-grid mb-6 sm:mb-8">
           <Card>
             <CardContent className="pt-4 sm:pt-6">
               <div className="flex items-center space-x-2 sm:space-x-3">
@@ -185,26 +185,22 @@ export default function UserDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-            <TabsTrigger value="overview" data-testid="overview-tab" className="text-xs sm:text-sm">
-              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Overview</span>
-              <span className="sm:hidden">Home</span>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+            <TabsTrigger value="overview" data-testid="overview-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Calendar className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="bookings" data-testid="my-bookings-tab" className="text-xs sm:text-sm">
-              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">My Bookings</span>
-              <span className="sm:hidden">Bookings</span>
+            <TabsTrigger value="bookings" data-testid="my-bookings-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Bookings</span>
             </TabsTrigger>
-            <TabsTrigger value="venues" data-testid="browse-venues-tab" className="text-xs sm:text-sm">
-              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Browse Venues</span>
-              <span className="sm:hidden">Venues</span>
+            <TabsTrigger value="venues" data-testid="browse-venues-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Venues</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" data-testid="notifications-tab" className="text-xs sm:text-sm">
-              <Bell className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Notifications</span>
-              <span className="sm:hidden">Alerts</span>
+            <TabsTrigger value="notifications" data-testid="notifications-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Bell className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Alerts</span>
             </TabsTrigger>
           </TabsList>
 
@@ -283,22 +279,22 @@ export default function UserDashboard() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2" data-testid="quick-book-venue">
-                    <Calendar className="w-4 h-4 sm:w-6 sm:h-6" />
-                    <span className="text-xs sm:text-sm">Book Venue</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" data-testid="quick-book-venue">
+                    <Calendar className="w-5 h-5" />
+                    <span className="text-xs font-medium">Book Venue</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2" data-testid="quick-view-bookings">
-                    <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6" />
-                    <span className="text-xs sm:text-sm">View Bookings</span>
+                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" data-testid="quick-view-bookings">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="text-xs font-medium">Bookings</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2" data-testid="quick-browse-venues">
-                    <MapPin className="w-4 h-4 sm:w-6 sm:h-6" />
-                    <span className="text-xs sm:text-sm">Browse Venues</span>
+                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" data-testid="quick-browse-venues">
+                    <MapPin className="w-5 h-5" />
+                    <span className="text-xs font-medium">Venues</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2" data-testid="quick-view-teams">
-                    <Users className="w-4 h-4 sm:w-6 sm:h-6" />
-                    <span className="text-xs sm:text-sm">View Teams</span>
+                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center gap-2" data-testid="quick-view-teams">
+                    <Users className="w-5 h-5" />
+                    <span className="text-xs font-medium">Teams</span>
                   </Button>
                 </div>
               </CardContent>

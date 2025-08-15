@@ -119,6 +119,35 @@
 
 /* Custom utilities for the Training Management System */
 @layer utilities {
+  /* Mobile-first responsive utilities */
+  .mobile-container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  
+  .mobile-header {
+    @apply pt-16 md:pt-6;
+  }
+  
+  .mobile-sidebar-offset {
+    @apply md:pl-64;
+  }
+  
+  .mobile-card {
+    @apply p-4 sm:p-6;
+  }
+  
+  .mobile-stats-grid {
+    @apply grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6;
+  }
+  
+  .mobile-tab {
+    @apply text-xs sm:text-sm px-2 sm:px-3 py-2;
+  }
+  
+  .mobile-button {
+    @apply text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2;
+  }
+  
   .text-success {
     color: hsl(var(--success));
   }

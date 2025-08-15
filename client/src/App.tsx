@@ -13,6 +13,8 @@ import UserDashboard from "@/pages/UserDashboard";
 import Bookings from "@/pages/Bookings";
 import Venues from "@/pages/Venues";
 import Teams from "@/pages/Teams";
+import Profile from "@/pages/Profile";
+import SystemAdmin from "@/pages/SystemAdmin";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -57,8 +59,8 @@ function Router() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="md:pl-64">
-        <main className="min-h-screen">
+      <div className="mobile-sidebar-offset">
+        <main className="min-h-screen mobile-header">
           <Switch>
             {/* Main Dashboard - shows role-based dashboard */}
             <Route path="/" component={getDashboardComponent()} />
@@ -72,6 +74,8 @@ function Router() {
             <Route path="/bookings" component={Bookings} />
             <Route path="/venues" component={Venues} />
             <Route path="/teams" component={Teams} />
+            <Route path="/profile" component={Profile} />
+            <Route path="/admin/system" component={SystemAdmin} />
             
             {/* Catch-all */}
             <Route component={NotFound} />

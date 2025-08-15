@@ -523,7 +523,7 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto mobile-container py-4 sm:py-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center space-x-3">
@@ -536,7 +536,7 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid mobile-stats-grid mb-6 sm:mb-8">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center space-x-3">
@@ -596,34 +596,34 @@ export default function SuperAdminDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="system-config" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="system-config" data-testid="system-config-tab">
-              <Settings className="w-4 h-4 mr-2" />
-              System Config
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1 h-auto p-1">
+            <TabsTrigger value="system-config" data-testid="system-config-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Settings className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Config</span>
             </TabsTrigger>
-            <TabsTrigger value="teams" data-testid="teams-tab">
-              <Users className="w-4 h-4 mr-2" />
-              Teams
+            <TabsTrigger value="teams" data-testid="teams-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Users className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Teams</span>
             </TabsTrigger>
-            <TabsTrigger value="venues" data-testid="venues-tab">
-              <Database className="w-4 h-4 mr-2" />
-              Venues
+            <TabsTrigger value="venues" data-testid="venues-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Database className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Venues</span>
             </TabsTrigger>
-            <TabsTrigger value="bookings" data-testid="bookings-tab">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Bookings
+            <TabsTrigger value="bookings" data-testid="bookings-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <BarChart3 className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Bookings</span>
             </TabsTrigger>
-            <TabsTrigger value="users" data-testid="users-tab">
-              <Users className="w-4 h-4 mr-2" />
-              Users
+            <TabsTrigger value="users" data-testid="users-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Users className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="permissions" data-testid="permissions-tab">
-              <Shield className="w-4 h-4 mr-2" />
-              Permissions
+            <TabsTrigger value="permissions" data-testid="permissions-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Shield className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Perms</span>
             </TabsTrigger>
-            <TabsTrigger value="audit" data-testid="audit-tab">
-              <FileText className="w-4 h-4 mr-2" />
-              Audit Logs
+            <TabsTrigger value="audit" data-testid="audit-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <FileText className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Audit</span>
             </TabsTrigger>
           </TabsList>
 
