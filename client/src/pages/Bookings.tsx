@@ -229,8 +229,8 @@ export default function Bookings() {
   const handleEditBooking = (booking: BookingWithDetails) => {
     setSelectedBooking(booking);
     setEditFormData({
-      startDateTime: format(parseISO(booking.startDateTime), "yyyy-MM-dd'T'HH:mm"),
-      endDateTime: format(parseISO(booking.endDateTime), "yyyy-MM-dd'T'HH:mm"),
+      startDateTime: format(new Date(booking.startDateTime), "yyyy-MM-dd'T'HH:mm"),
+      endDateTime: format(new Date(booking.endDateTime), "yyyy-MM-dd'T'HH:mm"),
       participantCount: booking.participantCount,
       specialRequirements: booking.specialRequirements || '',
       status: booking.status,
@@ -414,13 +414,13 @@ export default function Bookings() {
                           <div className="flex items-center space-x-2">
                             <Calendar className="w-4 h-4 text-gray-500" />
                             <span className="text-gray-600">
-                              {format(parseISO(booking.startDateTime), "MMM dd, yyyy")}
+                              {format(new Date(booking.startDateTime), "MMM dd, yyyy")}
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Clock className="w-4 h-4 text-gray-500" />
                             <span className="text-gray-600">
-                              {format(parseISO(booking.startDateTime), "HH:mm")} - {format(parseISO(booking.endDateTime), "HH:mm")}
+                              {format(new Date(booking.startDateTime), "HH:mm")} - {format(new Date(booking.endDateTime), "HH:mm")}
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -532,7 +532,7 @@ export default function Bookings() {
             <DialogHeader>
               <DialogTitle>Edit Booking</DialogTitle>
               <DialogDescription>
-                Make changes to the booking details.
+                Make changes to your booking details.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">

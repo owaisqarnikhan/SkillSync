@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -162,6 +163,9 @@ export default function BookingModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
         <DialogHeader>
           <DialogTitle>New Booking Request</DialogTitle>
+          <DialogDescription>
+            Select your preferred time slot and provide session details.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
