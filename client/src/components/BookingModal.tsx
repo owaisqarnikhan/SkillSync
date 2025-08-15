@@ -159,7 +159,7 @@ export default function BookingModal({
           {trigger}
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
         <DialogHeader>
           <DialogTitle>New Booking Request</DialogTitle>
         </DialogHeader>
@@ -219,7 +219,7 @@ export default function BookingModal({
             />
 
             {/* Date and Time */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <FormField
                 control={form.control}
                 name="date"
@@ -262,7 +262,7 @@ export default function BookingModal({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <FormField
                 control={form.control}
                 name="startTime"
@@ -349,7 +349,7 @@ export default function BookingModal({
               <AlertDescription>
                 <div className="space-y-1">
                   <p className="font-medium text-sm">Booking Rules:</p>
-                  <ul className="text-sm space-y-1 ml-4 list-disc">
+                  <ul className="text-xs sm:text-sm space-y-1 ml-4 list-disc">
                     <li>Maximum 2 hours per booking session</li>
                     <li>Bookings subject to manager approval</li>
                     <li>48-hour cancellation policy applies</li>
@@ -360,7 +360,7 @@ export default function BookingModal({
             </Alert>
 
             {/* Form Actions */}
-            <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-3 sm:space-y-0 pt-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200">
               <Button 
                 type="button" 
                 variant="outline" 

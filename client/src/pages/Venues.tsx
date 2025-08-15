@@ -148,15 +148,15 @@ export default function Venues() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Venues</h2>
-          <p className="text-gray-600 mt-1">Browse and book training venues for your team</p>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Venues</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Browse and book training venues for your team</p>
         </div>
 
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="flex-1">
                 <Input
                   placeholder="Search venues by name or location..."
@@ -165,7 +165,7 @@ export default function Venues() {
                   data-testid="search-venues-input"
                 />
               </div>
-              <div className="sm:w-48">
+              <div className="sm:w-44 lg:w-48">
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger data-testid="type-filter-select">
                     <SelectValue placeholder="Filter by type" />
@@ -210,7 +210,7 @@ export default function Venues() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredVenues.map((venue) => {
               const Icon = venueIcons[venue.type] || MapPin;
               const availability = getVenueAvailability(venue);
@@ -218,27 +218,27 @@ export default function Venues() {
               return (
                 <Card key={venue.id} className="hover:shadow-lg transition-shadow" data-testid={`venue-card-${venue.id}`}>
                   <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <Icon className="w-6 h-6 text-primary" />
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                         </div>
-                        <div>
-                          <CardTitle className="text-lg" data-testid={`venue-name-${venue.id}`}>
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="text-base sm:text-lg truncate" data-testid={`venue-name-${venue.id}`}>
                             {venue.name}
                           </CardTitle>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             {venueTypeLabels[venue.type]}
                           </p>
                         </div>
                       </div>
                       <Badge 
                         variant={availability.color as any}
-                        className={
+                        className={`text-xs flex-shrink-0 ${
                           availability.status === 'available' ? 'bg-success/10 text-success hover:bg-success/20' :
                           availability.status === 'limited' ? 'bg-warning/10 text-warning hover:bg-warning/20' :
                           'bg-destructive/10 text-destructive hover:bg-destructive/20'
-                        }
+                        }`}
                       >
                         {availability.label}
                       </Badge>
@@ -247,7 +247,7 @@ export default function Venues() {
                   <CardContent>
                     <div className="space-y-4">
                       {/* Venue details */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                         <div className="flex items-center space-x-2">
                           <Users className="w-4 h-4 text-muted-foreground" />
                           <span className="text-muted-foreground">
@@ -279,14 +279,14 @@ export default function Venues() {
                         <div>
                           <p className="text-sm font-medium text-gray-900 mb-2">Amenities:</p>
                           <div className="flex flex-wrap gap-1">
-                            {venue.amenities.slice(0, 3).map((amenity, index) => (
+                            {venue.amenities.slice(0, 2).map((amenity, index) => (
                               <Badge key={index} variant="secondary" className="text-xs">
                                 {amenity}
                               </Badge>
                             ))}
-                            {venue.amenities.length > 3 && (
+                            {venue.amenities.length > 2 && (
                               <Badge variant="secondary" className="text-xs">
-                                +{venue.amenities.length - 3} more
+                                +{venue.amenities.length - 2} more
                               </Badge>
                             )}
                           </div>

@@ -141,16 +141,18 @@ export default function Bookings() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">My Bookings</h2>
-              <p className="text-gray-600 mt-1">Manage your training session bookings</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Bookings</h2>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your training session bookings</p>
             </div>
             <Button 
               onClick={() => setBookingModalOpen(true)}
               data-testid="new-booking-button"
+              className="w-full sm:w-auto"
             >
+              <Calendar className="w-4 h-4 mr-2" />
               New Booking Request
             </Button>
           </div>
@@ -159,7 +161,7 @@ export default function Bookings() {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="flex-1">
                 <Input
                   placeholder="Search by venue or team name..."
@@ -168,7 +170,7 @@ export default function Bookings() {
                   data-testid="search-bookings-input"
                 />
               </div>
-              <div className="sm:w-48">
+              <div className="sm:w-44 lg:w-48">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger data-testid="status-filter-select">
                     <SelectValue placeholder="Filter by status" />
@@ -222,30 +224,32 @@ export default function Bookings() {
               return (
                 <Card key={booking.id} data-testid={`booking-card-${booking.id}`}>
                   <CardContent className="pt-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex flex-col gap-4">
                       {/* Main booking info */}
                       <div className="flex-1 space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center`}>
-                              <MapPin className="w-5 h-5 text-gray-600" />
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-semibold text-base sm:text-lg text-gray-900 truncate" data-testid={`booking-venue-${booking.id}`}>
+                                  {booking.venue.name}
+                                </h3>
+                                <p className="text-xs sm:text-sm text-gray-600 truncate" data-testid={`booking-team-${booking.id}`}>
+                                  {booking.team.name} • {booking.team.country.name}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="font-semibold text-lg text-gray-900" data-testid={`booking-venue-${booking.id}`}>
-                                {booking.venue.name}
-                              </h3>
-                              <p className="text-sm text-gray-600" data-testid={`booking-team-${booking.id}`}>
-                                {booking.team.name} • {booking.team.country.name}
-                              </p>
-                            </div>
+                            <Badge variant={config.variant} className="flex items-center space-x-1 flex-shrink-0 ml-2">
+                              <StatusIcon className="w-3 h-3" />
+                              <span className="text-xs">{config.label}</span>
+                            </Badge>
                           </div>
-                          <Badge variant={config.variant} className="flex items-center space-x-1">
-                            <StatusIcon className="w-3 h-3" />
-                            <span>{config.label}</span>
-                          </Badge>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm">
                           <div className="flex items-center space-x-2">
                             <Calendar className="w-4 h-4 text-gray-500" />
                             <span className="text-gray-600">
@@ -284,7 +288,7 @@ export default function Bookings() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex flex-col sm:flex-row gap-2 lg:flex-col lg:w-auto">
+                      <div className="flex flex-row gap-2 pt-2 border-t sm:border-t-0 sm:pt-0">
                         {canCancel && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>

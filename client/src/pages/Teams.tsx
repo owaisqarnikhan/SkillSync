@@ -90,9 +90,9 @@ export default function Teams() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Teams</h2>
-          <p className="text-gray-600 mt-1">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Teams</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Browse participating teams from across Asia
             {user?.role === 'customer' && user.countryCode && ` - Showing teams from ${user.countryCode}`}
           </p>
@@ -101,17 +101,16 @@ export default function Teams() {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="flex-1">
                 <Input
                   placeholder="Search teams, countries, or sports..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full"
                   data-testid="search-teams-input"
                 />
               </div>
-              <div>
+              <div className="sm:w-44 lg:w-48">
                 <Select value={countryFilter} onValueChange={setCountryFilter}>
                   <SelectTrigger data-testid="country-filter-select">
                     <SelectValue placeholder="Filter by country" />
@@ -126,7 +125,7 @@ export default function Teams() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="sm:w-40 lg:w-44">
                 <Select value={sportFilter} onValueChange={setSportFilter}>
                   <SelectTrigger data-testid="sport-filter-select">
                     <SelectValue placeholder="Filter by sport" />
@@ -167,31 +166,31 @@ export default function Teams() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredTeams.map((team) => (
               <Card key={team.id} className="hover:shadow-lg transition-shadow" data-testid={`team-card-${team.id}`}>
                 <CardHeader className="pb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                       {team.country.flagUrl ? (
                         <img 
                           src={team.country.flagUrl} 
                           alt={`${team.country.name} flag`}
-                          className="w-8 h-6 object-cover rounded"
+                          className="w-6 h-4 sm:w-8 sm:h-6 object-cover rounded"
                         />
                       ) : (
-                        <Flag className="w-6 h-6 text-primary" />
+                        <Flag className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-lg" data-testid={`team-name-${team.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base sm:text-lg truncate" data-testid={`team-name-${team.id}`}>
                         {team.name}
                       </CardTitle>
                       <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs truncate max-w-20 sm:max-w-none">
                           {team.country.name}
                         </Badge>
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs truncate max-w-16 sm:max-w-none">
                           {team.sport.name}
                         </Badge>
                       </div>
@@ -201,7 +200,7 @@ export default function Teams() {
                 <CardContent>
                   <div className="space-y-4">
                     {/* Team stats */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                       <div className="flex items-center space-x-2 text-sm">
                         <Users className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">
@@ -246,8 +245,9 @@ export default function Teams() {
                       </Badge>
                       
                       {user?.role !== 'customer' && (
-                        <Button variant="outline" size="sm" data-testid={`view-team-${team.id}`}>
-                          View Details
+                        <Button variant="outline" size="sm" className="text-xs sm:text-sm" data-testid={`view-team-${team.id}`}>
+                          <span className="hidden sm:inline">View Details</span>
+                          <span className="sm:hidden">View</span>
                         </Button>
                       )}
                     </div>

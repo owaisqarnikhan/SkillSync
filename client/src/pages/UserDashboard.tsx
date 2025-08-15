@@ -101,21 +101,21 @@ export default function UserDashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <Trophy className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+              <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
                   Welcome, {user?.firstName || user?.email}
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-sm sm:text-base text-gray-600 mt-1">
                   NOC Member Dashboard - {user?.countryCode ? `Team ${user.countryCode}` : 'Bahrain Asian Youth Games 2025'}
                 </p>
               </div>
             </div>
             
-            <div className="text-right">
+            <div className="text-left sm:text-right flex-shrink-0">
               <p className="text-sm text-gray-500">Today</p>
               <p className="text-lg font-semibold text-gray-900">
                 {format(new Date(), "MMM dd, yyyy")}
@@ -125,58 +125,58 @@ export default function UserDashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-blue-600" />
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">My Bookings</p>
-                  <p className="text-2xl font-bold">{bookings.length}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600">My Bookings</p>
+                  <p className="text-lg sm:text-2xl font-bold">{bookings.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Upcoming Sessions</p>
-                  <p className="text-2xl font-bold">{upcomingBookings.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <MapPin className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Available Venues</p>
-                  <p className="text-2xl font-bold">{venues.length}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600">Upcoming Sessions</p>
+                  <p className="text-lg sm:text-2xl font-bold">{upcomingBookings.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Bell className="w-6 h-6 text-orange-600" />
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-4 h-4 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Notifications</p>
-                  <p className="text-2xl font-bold">{recentNotifications.length}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600">Available Venues</p>
+                  <p className="text-lg sm:text-2xl font-bold">{venues.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Bell className="w-4 h-4 sm:w-6 sm:h-6 text-orange-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600">Notifications</p>
+                  <p className="text-lg sm:text-2xl font-bold">{recentNotifications.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -185,22 +185,26 @@ export default function UserDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview" data-testid="overview-tab">
-              <Calendar className="w-4 h-4 mr-2" />
-              Overview
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="overview" data-testid="overview-tab" className="text-xs sm:text-sm">
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Overview</span>
+              <span className="sm:hidden">Home</span>
             </TabsTrigger>
-            <TabsTrigger value="bookings" data-testid="my-bookings-tab">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              My Bookings
+            <TabsTrigger value="bookings" data-testid="my-bookings-tab" className="text-xs sm:text-sm">
+              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">My Bookings</span>
+              <span className="sm:hidden">Bookings</span>
             </TabsTrigger>
-            <TabsTrigger value="venues" data-testid="browse-venues-tab">
-              <MapPin className="w-4 h-4 mr-2" />
-              Browse Venues
+            <TabsTrigger value="venues" data-testid="browse-venues-tab" className="text-xs sm:text-sm">
+              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Browse Venues</span>
+              <span className="sm:hidden">Venues</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" data-testid="notifications-tab">
-              <Bell className="w-4 h-4 mr-2" />
-              Notifications
+            <TabsTrigger value="notifications" data-testid="notifications-tab" className="text-xs sm:text-sm">
+              <Bell className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Notifications</span>
+              <span className="sm:hidden">Alerts</span>
             </TabsTrigger>
           </TabsList>
 
@@ -279,22 +283,22 @@ export default function UserDashboard() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2" data-testid="quick-book-venue">
-                    <Calendar className="w-6 h-6" />
-                    <span>Book Venue</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2" data-testid="quick-book-venue">
+                    <Calendar className="w-4 h-4 sm:w-6 sm:h-6" />
+                    <span className="text-xs sm:text-sm">Book Venue</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2" data-testid="quick-view-bookings">
-                    <CheckCircle className="w-6 h-6" />
-                    <span>View Bookings</span>
+                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2" data-testid="quick-view-bookings">
+                    <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6" />
+                    <span className="text-xs sm:text-sm">View Bookings</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2" data-testid="quick-browse-venues">
-                    <MapPin className="w-6 h-6" />
-                    <span>Browse Venues</span>
+                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2" data-testid="quick-browse-venues">
+                    <MapPin className="w-4 h-4 sm:w-6 sm:h-6" />
+                    <span className="text-xs sm:text-sm">Browse Venues</span>
                   </Button>
-                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2" data-testid="quick-view-teams">
-                    <Users className="w-6 h-6" />
-                    <span>View Teams</span>
+                  <Button variant="outline" className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2" data-testid="quick-view-teams">
+                    <Users className="w-4 h-4 sm:w-6 sm:h-6" />
+                    <span className="text-xs sm:text-sm">View Teams</span>
                   </Button>
                 </div>
               </CardContent>
