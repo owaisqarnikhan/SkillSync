@@ -69,7 +69,7 @@ import {
   Flag,
   Trophy
 } from "lucide-react";
-import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, InsertTeam, InsertVenue, InsertSport, InsertCountry } from "@shared/schema";
+import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, VenueType, InsertTeam, InsertVenue, InsertSport, InsertCountry } from "@shared/schema";
 
 interface UserFormData {
   username?: string;
@@ -174,6 +174,11 @@ export default function SuperAdminDashboard() {
   
   const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
+  
+  const { data: venueTypes = [] } = useQuery<VenueType[]>({
+    queryKey: ["/api/venue-types"],
     enabled: isAuthenticated && user?.role === 'superadmin',
   });
 
@@ -374,8 +379,7 @@ export default function SuperAdminDashboard() {
     setTeamFormData({
       name: team.name,
       countryId: team.countryId,
-      sport: team.sport,
-      category: team.category,
+      sportId: team.sportId,
       description: team.description || '',
     });
     setTeamModalOpen(true);
@@ -406,6 +410,7 @@ export default function SuperAdminDashboard() {
       name: venue.name,
       location: venue.location,
       capacity: venue.capacity,
+      venueTypeId: venue.venueTypeId,
       description: venue.description || '',
       amenities: venue.amenities || [],
     });
@@ -1043,7 +1048,7 @@ export default function SuperAdminDashboard() {
                               <span>{team.country?.name || 'N/A'}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{team.sport || 'N/A'}</TableCell>
+                          <TableCell>{team.sport?.name || 'N/A'}</TableCell>
                           <TableCell className="max-w-xs truncate">{team.description || '-'}</TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
@@ -1142,7 +1147,7 @@ export default function SuperAdminDashboard() {
                           <TableCell>{venue.capacity}</TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="text-xs">
-                              {venue.type.replace('_', ' ').toUpperCase()}
+                              {venue.venueType?.name || 'N/A'}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -1720,23 +1725,21 @@ export default function SuperAdminDashboard() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="team-sport">Sport</Label>
-                <Input
-                  id="team-sport"
-                  value={teamFormData.sport || ''}
-                  onChange={(e) => setTeamFormData(prev => ({ ...prev, sport: e.target.value }))}
-                  placeholder="Enter sport name (e.g., Swimming, Basketball)"
-                  data-testid="team-sport-input"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="team-category">Category</Label>
-                <Input
-                  id="team-category"
-                  value={teamFormData.category || ''}
-                  onChange={(e) => setTeamFormData(prev => ({ ...prev, category: e.target.value }))}
-                  placeholder="Enter sport category (e.g., Aquatics, Ball Sports)"
-                  data-testid="team-category-input"
-                />
+                <Select
+                  value={teamFormData.sportId || ''}
+                  onValueChange={(value) => setTeamFormData(prev => ({ ...prev, sportId: value }))}
+                >
+                  <SelectTrigger data-testid="team-sport-select">
+                    <SelectValue placeholder="Select sport" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sports.map((sport) => (
+                      <SelectItem key={sport.id} value={sport.id}>
+                        {sport.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-2">
@@ -1755,7 +1758,7 @@ export default function SuperAdminDashboard() {
             <Button variant="outline" onClick={() => setTeamModalOpen(false)}>Cancel</Button>
             <Button
               onClick={handleTeamSubmit}
-              disabled={!teamFormData.name || !teamFormData.countryId || !teamFormData.sport || createTeamMutation.isPending || updateTeamMutation.isPending}
+              disabled={!teamFormData.name || !teamFormData.countryId || !teamFormData.sportId || createTeamMutation.isPending || updateTeamMutation.isPending}
               data-testid="team-submit-button"
             >
               {selectedTeam ? 'Update Team' : 'Create Team'}
@@ -1788,22 +1791,18 @@ export default function SuperAdminDashboard() {
               <div className="space-y-2">
                 <Label htmlFor="venue-type">Venue Type</Label>
                 <Select
-                  value={venueFormData.type || ''}
-                  onValueChange={(value) => setVenueFormData(prev => ({ ...prev, type: value as any }))}
+                  value={venueFormData.venueTypeId || ''}
+                  onValueChange={(value) => setVenueFormData(prev => ({ ...prev, venueTypeId: value }))}
                 >
                   <SelectTrigger data-testid="venue-type-select">
                     <SelectValue placeholder="Select venue type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="swimming_pool">Swimming Pool</SelectItem>
-                    <SelectItem value="athletics_track">Athletics Track</SelectItem>
-                    <SelectItem value="basketball_court">Basketball Court</SelectItem>
-                    <SelectItem value="volleyball_court">Volleyball Court</SelectItem>
-                    <SelectItem value="badminton_hall">Badminton Hall</SelectItem>
-                    <SelectItem value="tennis_court">Tennis Court</SelectItem>
-                    <SelectItem value="football_field">Football Field</SelectItem>
-                    <SelectItem value="gym">Gym</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {venueTypes.map((venueType) => (
+                      <SelectItem key={venueType.id} value={venueType.id}>
+                        {venueType.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1847,7 +1846,7 @@ export default function SuperAdminDashboard() {
             <Button variant="outline" onClick={() => setVenueModalOpen(false)}>Cancel</Button>
             <Button
               onClick={handleVenueSubmit}
-              disabled={!venueFormData.name || !venueFormData.type || !venueFormData.location || !venueFormData.capacity || createVenueMutation.isPending || updateVenueMutation.isPending}
+              disabled={!venueFormData.name || !venueFormData.venueTypeId || !venueFormData.location || !venueFormData.capacity || createVenueMutation.isPending || updateVenueMutation.isPending}
               data-testid="venue-submit-button"
             >
               {selectedVenue ? 'Update Venue' : 'Create Venue'}
