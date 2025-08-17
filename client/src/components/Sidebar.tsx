@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import type { SystemConfig } from "@shared/schema";
+import type { SystemConfig } from "@shared/types";
 import { 
   Trophy, 
   Globe, 
@@ -36,7 +36,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { getSidebarLogoSizeConfig } from "@/utils/logoUtils";
-import type { NotificationWithDetails } from "@shared/schema";
+import type { NotificationWithDetails } from "@shared/types";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Sidebar() {
@@ -76,8 +76,8 @@ export default function Sidebar() {
     enabled: isAuthenticated,
   });
 
-  // Get logo size configuration
-  const logoSizeConfig = getSidebarLogoSizeConfig(systemConfig?.logoSize || 'medium');
+  // Get logo size configuration - always use medium/default size for sidebar
+  const logoSizeConfig = getSidebarLogoSizeConfig('medium');
 
   const unreadCount = notifications?.length || 0;
 
