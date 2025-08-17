@@ -34,7 +34,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { Venue, TeamWithDetails, SystemConfig } from "@shared/schema";
+import type { VenueWithDetails, TeamWithDetails, SystemConfig } from "@shared/schema";
 import { format, addDays } from "date-fns";
 
 const bookingSchema = z.object({
@@ -74,7 +74,7 @@ export default function BookingModal({
   });
 
   // Fetch venues
-  const { data: venues = [] } = useQuery<Venue[]>({
+  const { data: venues = [] } = useQuery<VenueWithDetails[]>({
     queryKey: ["/api/venues"],
   });
 
@@ -191,7 +191,7 @@ export default function BookingModal({
                     <SelectContent>
                       {venues.map((venue) => (
                         <SelectItem key={venue.id} value={venue.id} data-testid={`venue-option-${venue.id}`}>
-                          {venue.name} - {venue.type.replace("_", " ")} (Capacity: {venue.capacity})
+                          {venue.name} - {venue.venueType?.name || 'Unknown Type'} (Capacity: {venue.capacity})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -217,7 +217,7 @@ export default function BookingModal({
                     <SelectContent>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id} data-testid={`team-option-${team.id}`}>
-                          {team.name} ({team.country?.name || 'Unknown'} - {team.sport || 'Unknown Sport'})
+                          {team.name} ({team.country?.name || 'Unknown'} - {team.sport?.name || 'Unknown Sport'})
                         </SelectItem>
                       ))}
                     </SelectContent>
