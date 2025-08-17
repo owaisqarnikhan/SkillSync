@@ -102,6 +102,8 @@ export interface IStorage {
   updateBooking(id: string, updates: Partial<Booking>): Promise<Booking>;
   deleteBooking(id: string): Promise<void>;
   checkBookingConflicts(venueId: string, startDateTime: Date, endDateTime: Date, excludeBookingId?: string): Promise<boolean>;
+  getAvailableTimeSlots(venueId: string, date: string): Promise<{ startTime: string; endTime: string; available: boolean }[]>;
+  getAdminEmails(): Promise<string[]>;
   
   // Venue blackout operations
   getVenueBlackouts(venueId?: string): Promise<VenueBlackout[]>;
@@ -925,6 +927,79 @@ export class DatabaseStorage implements IStorage {
       .values(permissionData)
       .returning();
     return created;
+  }
+
+  // Get available time slots for a venue on a specific date
+  async getAvailableTimeSlots(venueId: string, date: string): Promise<{ startTime: string; endTime: string; available: boolean }[]> {
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Get all bookings for this venue on this date
+    const existingBookings = await db
+      .select({
+        startDateTime: bookings.startDateTime,
+        endDateTime: bookings.endDateTime,
+      })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.venueId, venueId),
+          gte(bookings.startDateTime, startOfDay),
+          lte(bookings.startDateTime, endOfDay),
+          eq(bookings.status, 'approved')
+        )
+      );
+
+    // Generate hourly slots from 6 AM to 10 PM
+    const timeSlots = [];
+    for (let hour = 6; hour <= 22; hour++) {
+      const startTime = `${hour.toString().padStart(2, '0')}:00`;
+      const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
+      
+      const slotStart = new Date(targetDate);
+      slotStart.setHours(hour, 0, 0, 0);
+      const slotEnd = new Date(targetDate);
+      slotEnd.setHours(hour + 1, 0, 0, 0);
+
+      // Check if this slot conflicts with any existing booking
+      const hasConflict = existingBookings.some(booking => {
+        const bookingStart = new Date(booking.startDateTime);
+        const bookingEnd = new Date(booking.endDateTime);
+        
+        return (
+          (slotStart >= bookingStart && slotStart < bookingEnd) ||
+          (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
+          (slotStart <= bookingStart && slotEnd >= bookingEnd)
+        );
+      });
+
+      timeSlots.push({
+        startTime,
+        endTime,
+        available: !hasConflict
+      });
+    }
+
+    return timeSlots;
+  }
+
+  // Get admin emails for notifications
+  async getAdminEmails(): Promise<string[]> {
+    const admins = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(
+        and(
+          or(eq(users.role, 'superadmin'), eq(users.role, 'manager')),
+          eq(users.isActive, true),
+          sql`${users.email} IS NOT NULL AND ${users.email} != ''`
+        )
+      );
+
+    return admins.map(admin => admin.email).filter(email => email) as string[];
   }
 }
 

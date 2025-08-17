@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, hashPassword, comparePasswords } from "./customAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { emailService } from "./emailService";
+import { reminderService } from "./reminderService";
 import { 
   insertBookingSchema,
   insertTeamSchema,
@@ -700,6 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertBookingSchema.parse({
         ...req.body,
         requesterId: userId,
+        status: 'approved', // Automatically approve all bookings
       });
 
       // Check for conflicts
@@ -728,14 +731,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const booking = await storage.createBooking(validatedData);
       
-      // Create notification for managers
-      await storage.createNotification({
-        userId: userId, // This would be updated to notify relevant managers
-        type: 'booking_requested',
-        title: 'New Booking Request',
-        message: `New booking request for ${validatedData.venueId}`,
-        bookingId: booking.id,
-      });
+      // Get booking details for email notifications
+      const [user, team, venue] = await Promise.all([
+        storage.getUser(userId),
+        storage.getTeam(validatedData.teamId),
+        storage.getVenue(validatedData.venueId)
+      ]);
+
+      if (user && team && venue) {
+        // Send confirmation email to user
+        const userEmailContent = emailService.generateBookingConfirmationEmail({
+          userName: user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}` 
+            : user.username,
+          teamName: team.name,
+          venueName: venue.name,
+          startDateTime: validatedData.startDateTime,
+          endDateTime: validatedData.endDateTime,
+          participantCount: validatedData.participantCount,
+          specialRequirements: validatedData.specialRequirements || undefined,
+        });
+
+        if (user.email) {
+          await emailService.sendEmail({
+            to: user.email,
+            subject: userEmailContent.subject,
+            html: userEmailContent.html,
+            text: userEmailContent.text,
+          });
+        }
+
+        // Send notification email to admins
+        const adminEmails = await storage.getAdminEmails();
+        if (adminEmails.length > 0) {
+          const adminEmailContent = emailService.generateAdminNotificationEmail({
+            userName: user.firstName && user.lastName 
+              ? `${user.firstName} ${user.lastName}` 
+              : user.username,
+            teamName: team.name,
+            venueName: venue.name,
+            startDateTime: validatedData.startDateTime,
+            endDateTime: validatedData.endDateTime,
+            participantCount: validatedData.participantCount,
+          });
+
+          await emailService.sendEmail({
+            to: adminEmails,
+            subject: adminEmailContent.subject,
+            html: adminEmailContent.html,
+            text: adminEmailContent.text,
+          });
+        }
+
+        // Schedule reminder emails
+        await reminderService.scheduleBookingReminders(booking.id);
+      }
 
       await createAuditLog(req, 'CREATE', 'booking', booking.id, null, validatedData);
       
@@ -764,83 +814,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Venue not found" });
       }
 
-      // Get venue's working hours (default 06:00 - 22:00)
-      const workingStartTime = venue.workingStartTime || '06:00';
-      const workingEndTime = venue.workingEndTime || '22:00';
-      const bufferTimeMinutes = venue.bufferTimeMinutes || 15;
-
-      // Parse the date and create time slots
-      const targetDate = new Date(date as string);
-      const startOfDay = new Date(targetDate);
-      startOfDay.setHours(parseInt(workingStartTime.split(':')[0]), parseInt(workingStartTime.split(':')[1]), 0, 0);
+      const availableSlots = await storage.getAvailableTimeSlots(venueId, date as string);
       
-      const endOfDay = new Date(targetDate);
-      endOfDay.setHours(parseInt(workingEndTime.split(':')[0]), parseInt(workingEndTime.split(':')[1]), 0, 0);
-
-      // Get existing bookings for the venue on this date
-      const existingBookings = await storage.getBookings({
-        venueId,
-        startDate: targetDate.toISOString().split('T')[0],
-        endDate: targetDate.toISOString().split('T')[0],
-      });
-
-      // Filter only active bookings (approved, pending, requested)
-      const activeBookings = existingBookings.filter(booking => 
-        ['approved', 'pending', 'requested'].includes(booking.status)
-      );
-
-      // Generate 1-hour time slots
-      const availableSlots = [];
-      const unavailableSlots = [];
-      let currentTime = new Date(startOfDay);
-
-      while (currentTime < endOfDay) {
-        const slotEnd = new Date(currentTime.getTime() + 60 * 60 * 1000); // 1 hour slot
-        
-        // Check if this slot conflicts with any booking
-        const hasConflict = activeBookings.some(booking => {
-          const bookingStart = new Date(booking.startDateTime);
-          const bookingEnd = new Date(booking.endDateTime);
-          
-          // Add buffer time to booking
-          const bufferStart = new Date(bookingStart.getTime() - bufferTimeMinutes * 60 * 1000);
-          const bufferEnd = new Date(bookingEnd.getTime() + bufferTimeMinutes * 60 * 1000);
-          
-          // Check for overlap
-          return (currentTime < bufferEnd && slotEnd > bufferStart);
-        });
-
-        const slot = {
-          startTime: currentTime.toTimeString().slice(0, 5),
-          endTime: slotEnd.toTimeString().slice(0, 5),
-          available: !hasConflict,
-          datetime: currentTime.toISOString(),
-        };
-
-        if (hasConflict) {
-          unavailableSlots.push(slot);
-        } else {
-          availableSlots.push(slot);
-        }
-
-        currentTime = new Date(currentTime.getTime() + 60 * 60 * 1000); // Move to next hour
-      }
-
       res.json({
         venue: {
           id: venue.id,
           name: venue.name,
-          workingHours: `${workingStartTime} - ${workingEndTime}`,
-          bufferTimeMinutes,
         },
-        date: targetDate.toISOString().split('T')[0],
-        availableSlots,
-        unavailableSlots,
-        summary: {
-          totalSlots: availableSlots.length + unavailableSlots.length,
-          availableCount: availableSlots.length,
-          unavailableCount: unavailableSlots.length,
-        }
+        date: date,
+        slots: availableSlots
       });
     } catch (error) {
       console.error("Error fetching venue availability:", error);
@@ -939,8 +921,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updatedBooking = await storage.updateBooking(req.params.id, updates);
       
-      // Create notification
+      // Handle status changes and reminder scheduling
       if (updates.status) {
+        if (updates.status === 'denied' || updates.status === 'cancelled') {
+          // Cancel reminders for denied/cancelled bookings
+          reminderService.cancelBookingReminders(req.params.id);
+        } else if (updates.status === 'approved') {
+          // Schedule reminders for newly approved bookings
+          await reminderService.scheduleBookingReminders(req.params.id);
+        }
+
         const notificationType = updates.status === 'approved' ? 'booking_approved' : 'booking_denied';
         await storage.createNotification({
           userId: existingBooking.requesterId,
@@ -975,6 +965,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
+      // Cancel any scheduled reminders for this booking
+      reminderService.cancelBookingReminders(req.params.id);
+      
       await storage.deleteBooking(req.params.id);
       
       // Create notification
@@ -1553,6 +1546,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update venue image" });
     }
   });
+
+  // Initialize reminder service for existing bookings on server start
+  console.log('Starting reminder service initialization...');
+  await reminderService.initializeExistingBookingReminders();
+  console.log('Reminder service initialization completed');
 
   const httpServer = createServer(app);
   return httpServer;
