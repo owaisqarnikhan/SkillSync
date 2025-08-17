@@ -67,9 +67,10 @@ import {
   Calendar,
   MapPin,
   Flag,
-  Trophy
+  Trophy,
+  Building
 } from "lucide-react";
-import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, VenueType, InsertTeam, InsertVenue, InsertSport, InsertCountry } from "@shared/schema";
+import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, VenueType, InsertTeam, InsertVenue, InsertSport, InsertCountry, InsertVenueType } from "@shared/schema";
 
 interface UserFormData {
   username?: string;
@@ -112,6 +113,11 @@ export default function SuperAdminDashboard() {
   const [countryModalOpen, setCountryModalOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [countryFormData, setCountryFormData] = useState<Partial<InsertCountry>>({});
+
+  // Venue Types management state
+  const [venueTypeModalOpen, setVenueTypeModalOpen] = useState(false);
+  const [selectedVenueType, setSelectedVenueType] = useState<VenueType | null>(null);
+  const [venueTypeFormData, setVenueTypeFormData] = useState<Partial<InsertVenueType>>({});
 
   // Redirect if not SuperAdmin
   useEffect(() => {
@@ -598,6 +604,62 @@ export default function SuperAdminDashboard() {
     },
   });
 
+  // Venue Type CRUD mutations
+  const createVenueTypeMutation = useMutation({
+    mutationFn: (data: Partial<InsertVenueType>) => 
+      apiRequest("POST", "/api/venue-types", data),
+    onSuccess: () => {
+      toast({ title: "Venue Type Created", description: "Venue type has been created successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/venue-types"] });
+      setVenueTypeModalOpen(false);
+      setVenueTypeFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const updateVenueTypeMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertVenueType> }) => 
+      apiRequest("PUT", `/api/venue-types/${id}`, data),
+    onSuccess: () => {
+      toast({ title: "Venue Type Updated", description: "Venue type has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/venue-types"] });
+      setVenueTypeModalOpen(false);
+      setSelectedVenueType(null);
+      setVenueTypeFormData({});
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deleteVenueTypeMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/venue-types/${id}`),
+    onSuccess: () => {
+      toast({ title: "Venue Type Deleted", description: "Venue type has been deleted successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/venue-types"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session Expired", description: "Please login again.", variant: "destructive" });
+        setTimeout(() => window.location.href = "/api/login", 1000);
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // User handlers
   const handleCreateUser = () => {
     setSelectedUser(null);
@@ -691,6 +753,34 @@ export default function SuperAdminDashboard() {
     deleteCountryMutation.mutate(id);
   };
 
+  // Venue type handlers
+  const handleCreateVenueType = () => {
+    setSelectedVenueType(null);
+    setVenueTypeFormData({});
+    setVenueTypeModalOpen(true);
+  };
+
+  const handleEditVenueType = (venueType: VenueType) => {
+    setSelectedVenueType(venueType);
+    setVenueTypeFormData({
+      name: venueType.name,
+      description: venueType.description || '',
+    });
+    setVenueTypeModalOpen(true);
+  };
+
+  const handleVenueTypeSubmit = () => {
+    if (selectedVenueType) {
+      updateVenueTypeMutation.mutate({ id: selectedVenueType.id, data: venueTypeFormData });
+    } else {
+      createVenueTypeMutation.mutate(venueTypeFormData as InsertVenueType);
+    }
+  };
+
+  const handleDeleteVenueType = (id: string) => {
+    deleteVenueTypeMutation.mutate(id);
+  };
+
   if (isLoading || configLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -781,7 +871,7 @@ export default function SuperAdminDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="system-config" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-10 gap-1 h-auto p-1">
             <TabsTrigger value="system-config" data-testid="system-config-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <Settings className="w-4 h-4 flex-shrink-0" />
               <span className="truncate text-xs sm:text-sm">Config</span>
@@ -817,6 +907,10 @@ export default function SuperAdminDashboard() {
             <TabsTrigger value="countries" data-testid="countries-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <Flag className="w-4 h-4 flex-shrink-0" />
               <span className="truncate text-xs sm:text-sm">Countries</span>
+            </TabsTrigger>
+            <TabsTrigger value="venue-types" data-testid="venue-types-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <Building className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">V.Types</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1681,6 +1775,104 @@ export default function SuperAdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Venue Types Management Tab */}
+          <TabsContent value="venue-types" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Building className="w-5 h-5" />
+                    <span>Venue Types Management</span>
+                  </CardTitle>
+                  <Button onClick={handleCreateVenueType} data-testid="create-venue-type-button">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Venue Type
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {venueTypes.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {venueTypes.map((venueType) => (
+                        <TableRow key={venueType.id}>
+                          <TableCell className="font-medium">{venueType.name}</TableCell>
+                          <TableCell className="max-w-xs truncate">{venueType.description || '-'}</TableCell>
+                          <TableCell>
+                            <Badge variant={venueType.isActive ? "default" : "secondary"}>
+                              {venueType.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditVenueType(venueType)}
+                                data-testid={`edit-venue-type-${venueType.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-700"
+                                    data-testid={`delete-venue-type-${venueType.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Venue Type</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{venueType.name}"? This action cannot be undone and may affect existing venues.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteVenueType(venueType.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12">
+                    <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">No Venue Types Found</p>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first venue type to categorize venues.
+                    </p>
+                    <Button onClick={handleCreateVenueType}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Venue Type
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -2102,6 +2294,51 @@ export default function SuperAdminDashboard() {
               data-testid="country-submit-button"
             >
               {selectedCountry ? 'Update Country' : 'Create Country'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Venue Type Modal */}
+      <Dialog open={venueTypeModalOpen} onOpenChange={setVenueTypeModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{selectedVenueType ? 'Edit Venue Type' : 'Create New Venue Type'}</DialogTitle>
+            <DialogDescription>
+              {selectedVenueType ? 'Update the venue type information below.' : 'Fill in the details to create a new venue type.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="venue-type-name">Venue Type Name *</Label>
+              <Input
+                id="venue-type-name"
+                value={venueTypeFormData.name || ''}
+                onChange={(e) => setVenueTypeFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter venue type name (e.g., Stadium, Pool, Court)"
+                data-testid="venue-type-name-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="venue-type-description">Description</Label>
+              <Textarea
+                id="venue-type-description"
+                value={venueTypeFormData.description || ''}
+                onChange={(e) => setVenueTypeFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter venue type description"
+                data-testid="venue-type-description-input"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVenueTypeModalOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleVenueTypeSubmit}
+              disabled={!venueTypeFormData.name || createVenueTypeMutation.isPending || updateVenueTypeMutation.isPending}
+              data-testid="venue-type-submit-button"
+            >
+              {selectedVenueType ? 'Update Venue Type' : 'Create Venue Type'}
             </Button>
           </DialogFooter>
         </DialogContent>
