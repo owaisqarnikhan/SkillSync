@@ -325,14 +325,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       objectStorageService.downloadObject(file, res);
     } catch (error) {
       console.error("Error searching for public object:", error);
+      // Handle missing object storage configuration
+      if (error instanceof Error && error.message.includes('PUBLIC_OBJECT_SEARCH_PATHS not set')) {
+        return res.status(503).json({ 
+          error: "File serving is temporarily unavailable. Object storage needs to be configured.",
+          message: "Please set up object storage in the Replit workspace to enable file serving." 
+        });
+      }
       return res.status(500).json({ error: "Internal server error" });
     }
   });
 
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
-    const objectStorageService = new ObjectStorageService();
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    res.json({ uploadURL });
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Object storage upload error:", error);
+      // Temporary fallback when object storage is not configured
+      if (error instanceof Error && error.message.includes('PRIVATE_OBJECT_DIR not set')) {
+        res.status(503).json({ 
+          error: "File upload is temporarily unavailable. Object storage needs to be configured.",
+          message: "Please set up object storage in the Replit workspace to enable file uploads." 
+        });
+      } else {
+        res.status(500).json({ error: "Internal server error" });
+      }
+    }
   });
 
   // Teams routes
