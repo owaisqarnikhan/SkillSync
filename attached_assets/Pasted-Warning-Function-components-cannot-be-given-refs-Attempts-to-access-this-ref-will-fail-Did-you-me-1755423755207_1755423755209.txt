@@ -1,0 +1,33 @@
+Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?
+
+Check the render method of `Primitive.button.SlotClone`.
+    at TooltipProvider (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=cbce69e5:60:5)
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=6a10b99b:79:13
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=6a10b99b:56:13
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=6a10b99b:42:13
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=6a10b99b:79:13
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=6a10b99b:56:13
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=6a10b99b:42:13
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HV4ASTPV.js?v=6a10b99b:1961:13
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=48bf8b7c:140:13
+    at https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=48bf8b7c:939:13
+    at Provider (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-54LY3QNH.js?v=6a10b99b:38:15)
+    at Provider (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-54LY3QNH.js?v=6a10b99b:38:15)
+    at Provider (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-54LY3QNH.js?v=6a10b99b:38:15)
+    at Popper (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HV4ASTPV.js?v=6a10b99b:1953:11)
+    at Menu (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=48bf8b7c:94:11)
+    at Provider (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-54LY3QNH.js?v=6a10b99b:38:15)
+    at DropdownMenu (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=48bf8b7c:905:5)
+    at div
+    at div
+    at div
+    at SidebarContent (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/src/components/Sidebar.tsx:125:29)
+    at div
+    at div
+    at Sidebar (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/src/components/Sidebar.tsx:57:37)
+    at div
+    at Router (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/src/App.tsx?v=o8nDfPVA0Td654LZnhMp2:40:48)
+    at Provider (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-54LY3QNH.js?v=6a10b99b:38:15)
+    at TooltipProvider (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=cbce69e5:60:5)
+    at QueryClientProvider (https://7d89fef8-da9d-4168-9e4f-105634c7177c-00-1ezbahfu08qc6.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=cf2af89e:2805:3)
+    at App
