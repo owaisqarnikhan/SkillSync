@@ -254,10 +254,10 @@ export default function Sidebar() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant={location === "/system-admin" ? "secondary" : "ghost"}
                         className="w-full justify-center p-2"
                         onClick={() => {
-                          setLocation("/admin/system");
+                          setLocation("/system-admin");
                           isMobile && setIsMobileOpen(false);
                         }}
                         data-testid="nav-system-config"
@@ -271,10 +271,10 @@ export default function Sidebar() {
                   </Tooltip>
                 ) : (
                   <Button
-                    variant="ghost"
+                    variant={location === "/system-admin" ? "secondary" : "ghost"}
                     className="w-full justify-start"
                     onClick={() => {
-                      setLocation("/admin/system");
+                      setLocation("/system-admin");
                       isMobile && setIsMobileOpen(false);
                     }}
                     data-testid="nav-system-config"
