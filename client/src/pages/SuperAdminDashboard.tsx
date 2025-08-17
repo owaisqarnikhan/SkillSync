@@ -1915,7 +1915,7 @@ export default function SuperAdminDashboard() {
 
       {/* Team Modal */}
       <Dialog open={teamModalOpen} onOpenChange={setTeamModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{selectedTeam ? 'Edit Team' : 'Create New Team'}</DialogTitle>
             <DialogDescription>
@@ -1933,7 +1933,7 @@ export default function SuperAdminDashboard() {
                 data-testid="team-name-input"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="team-country">Country</Label>
                 <Select
@@ -1998,7 +1998,7 @@ export default function SuperAdminDashboard() {
 
       {/* Venue Modal */}
       <Dialog open={venueModalOpen} onOpenChange={setVenueModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{selectedVenue ? 'Edit Venue' : 'Create New Venue'}</DialogTitle>
             <DialogDescription>
@@ -2006,7 +2006,7 @@ export default function SuperAdminDashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="venue-name">Venue Name</Label>
                 <Input
@@ -2036,7 +2036,7 @@ export default function SuperAdminDashboard() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="venue-capacity">Capacity</Label>
                 <Input
@@ -2086,7 +2086,7 @@ export default function SuperAdminDashboard() {
 
       {/* User Modal */}
       <Dialog open={userModalOpen} onOpenChange={setUserModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{selectedUser ? 'Edit User' : 'Create New User'}</DialogTitle>
             <DialogDescription>
@@ -2094,7 +2094,7 @@ export default function SuperAdminDashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="user-username">Username</Label>
                 <Input
@@ -2153,7 +2153,7 @@ export default function SuperAdminDashboard() {
                 data-testid="user-email-input"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="user-role">Role</Label>
                 <Select
@@ -2223,7 +2223,7 @@ export default function SuperAdminDashboard() {
 
       {/* Sports Modal */}
       <Dialog open={sportsModalOpen} onOpenChange={setSportsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{selectedSport ? 'Edit Sport' : 'Create New Sport'}</DialogTitle>
             <DialogDescription>
@@ -2278,7 +2278,7 @@ export default function SuperAdminDashboard() {
 
       {/* Countries Modal */}
       <Dialog open={countryModalOpen} onOpenChange={setCountryModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{selectedCountry ? 'Edit Country' : 'Create New Country'}</DialogTitle>
             <DialogDescription>
@@ -2338,7 +2338,7 @@ export default function SuperAdminDashboard() {
 
       {/* Venue Type Modal */}
       <Dialog open={venueTypeModalOpen} onOpenChange={setVenueTypeModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{selectedVenueType ? 'Edit Venue Type' : 'Create New Venue Type'}</DialogTitle>
             <DialogDescription>

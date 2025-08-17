@@ -550,14 +550,14 @@ export default function Venues() {
 
         {/* Edit Venue Modal */}
         <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Edit Venue</DialogTitle>
               <DialogDescription>
                 Make changes to the venue information.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid gap-4 py-4">
               {/* Venue Image Upload */}
               <div className="grid gap-2">
                 <Label>Venue Image</Label>

@@ -165,7 +165,7 @@ export default function BookingModal({
           {trigger}
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>New Booking Request</DialogTitle>
           <DialogDescription>

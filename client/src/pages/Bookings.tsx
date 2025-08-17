@@ -528,14 +528,14 @@ export default function Bookings() {
 
         {/* Edit Booking Modal */}
         <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Edit Booking</DialogTitle>
               <DialogDescription>
                 Make changes to your booking details.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid gap-4 py-4">
               {selectedBooking && (
                 <div className="bg-gray-50 p-3 rounded-lg mb-4">
                   <p className="text-sm font-medium text-gray-900">
@@ -547,7 +547,7 @@ export default function Bookings() {
                 </div>
               )}
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="startDateTime">Start Date & Time</Label>
                   <Input

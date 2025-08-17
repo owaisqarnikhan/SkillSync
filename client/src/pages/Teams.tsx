@@ -422,7 +422,7 @@ export default function Teams() {
 
         {/* Edit Team Modal */}
         <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Edit Team</DialogTitle>
               <DialogDescription>
