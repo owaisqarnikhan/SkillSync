@@ -29,6 +29,7 @@ import {
   Shield,
   Crown
 } from "lucide-react";
+import { getLogoSizeConfig } from "@/utils/logoUtils";
 import { Link, useLocation } from "wouter";
 import type { SystemConfig } from "@shared/schema";
 
@@ -58,6 +59,9 @@ export default function MobileHeader({ isScrolled }: MobileHeaderProps) {
   const { data: systemConfig } = useQuery<SystemConfig>({
     queryKey: ["/api/system/config"],
   });
+
+  // Get logo size configuration
+  const logoSizeConfig = getLogoSizeConfig(systemConfig?.logoSize || 'medium');
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -91,7 +95,7 @@ export default function MobileHeader({ isScrolled }: MobileHeaderProps) {
       } lg:hidden`}
       data-testid="mobile-header"
     >
-      <div className="flex items-center justify-between h-16 px-4">
+      <div className={`flex items-center justify-between ${logoSizeConfig.headerHeight} px-4`}>
         {/* Left: Navigation Toggle */}
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild>
@@ -209,11 +213,11 @@ export default function MobileHeader({ isScrolled }: MobileHeaderProps) {
               <img
                 src={systemConfig.logoUrl}
                 alt="Logo"
-                className="h-8 w-auto object-contain"
+                className={logoSizeConfig.imageClass}
               />
             ) : (
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center">
-                <Crown className="h-5 w-5 text-gray-600" />
+              <div className={`${logoSizeConfig.containerClass} rounded-lg flex items-center justify-center`}>
+                <Crown className={`${logoSizeConfig.iconClass} text-gray-600`} />
               </div>
             )}
             <span className="font-bold text-lg text-gray-900 hidden sm:block">

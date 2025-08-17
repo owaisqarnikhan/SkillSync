@@ -1034,6 +1034,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         loginHeading3: config?.loginHeading3,
         logoUrl: config?.logoUrl,
         separatorImageUrl: config?.separatorImageUrl,
+        logoSize: config?.logoSize || 'medium',
       };
       res.json(publicConfig);
     } catch (error) {

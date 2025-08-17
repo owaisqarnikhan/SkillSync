@@ -35,6 +35,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
+import { getSidebarLogoSizeConfig } from "@/utils/logoUtils";
 import type { NotificationWithDetails } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -74,6 +75,9 @@ export default function Sidebar() {
     queryKey: ["/api/system/config"],
     enabled: isAuthenticated,
   });
+
+  // Get logo size configuration
+  const logoSizeConfig = getSidebarLogoSizeConfig(systemConfig?.logoSize || 'medium');
 
   const unreadCount = notifications?.length || 0;
 
@@ -130,22 +134,26 @@ export default function Sidebar() {
       <div className={`px-4 py-6 border-b ${!isMobile && isCollapsed ? 'px-2' : ''}`}>
         <div className="flex items-center justify-between">
           <div className={`flex items-center ${!isMobile && isCollapsed ? 'justify-center' : 'space-x-3'}`}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+            <div className={`${logoSizeConfig.containerClass} rounded-xl flex items-center justify-center shadow-lg overflow-hidden`}>
               {systemConfig?.logoUrl ? (
                 <img 
                   src={systemConfig.logoUrl}
                   alt="Dashboard Logo"
-                  className="w-full h-full object-contain"
+                  className={logoSizeConfig.imageClass}
                   data-testid="sidebar-logo-image"
                 />
               ) : (
-                <Trophy className="text-gray-600 text-lg" data-testid="sidebar-logo" />
+                <Trophy className={logoSizeConfig.iconClass} data-testid="sidebar-logo" />
               )}
             </div>
             {(!isCollapsed || isMobile) && (
               <div className="flex-1 min-w-0">
-                <h1 className="font-bold text-sm text-gray-900 truncate">Training System</h1>
-                <p className="text-xs text-gray-500 truncate">Bahrain Asian Youth Games 2025</p>
+                <h1 className="font-bold text-sm text-gray-900 truncate">
+                  {systemConfig?.systemName || "Training System"}
+                </h1>
+                <p className="text-xs text-gray-500 truncate">
+                  {systemConfig?.systemSubtitle || "Bahrain Asian Youth Games 2025"}
+                </p>
               </div>
             )}
           </div>

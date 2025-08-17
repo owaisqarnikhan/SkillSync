@@ -173,6 +173,7 @@ export const systemConfig = pgTable("system_config", {
   loginHeading2: varchar("login_heading_2", { length: 200 }).default('Bahrain Asian Youth Games 2025').notNull(),
   loginHeading3: varchar("login_heading_3", { length: 200 }).default('Training Management System').notNull(),
   logoUrl: varchar("logo_url"),
+  logoSize: varchar("logo_size", { length: 20 }).default('medium').notNull(), // small, medium, large, xlarge
   separatorImageUrl: varchar("separator_image_url"),
   smtpHost: varchar("smtp_host"),
   smtpPort: integer("smtp_port").default(587),

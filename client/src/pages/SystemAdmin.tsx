@@ -14,6 +14,7 @@ import {
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -331,6 +332,28 @@ export default function SystemAdmin() {
                         <span>{isUploading ? "Uploading..." : "Upload Logo"}</span>
                       </div>
                     </ObjectUploader>
+                  </div>
+                  
+                  {/* Logo Size Configuration */}
+                  <div className="space-y-2">
+                    <Label htmlFor="logoSize">Logo Size</Label>
+                    <Select
+                      value={systemConfig.logoSize || 'medium'}
+                      onValueChange={(value) => setSystemConfig(prev => ({ ...prev, logoSize: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select logo size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="small">Small (24px)</SelectItem>
+                        <SelectItem value="medium">Medium (32px)</SelectItem>
+                        <SelectItem value="large">Large (48px)</SelectItem>
+                        <SelectItem value="xlarge">Extra Large (64px)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500">
+                      Logo size will be applied to both desktop and mobile headers
+                    </p>
                   </div>
                 </CardContent>
               </Card>
