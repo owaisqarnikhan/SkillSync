@@ -68,7 +68,9 @@ import {
   MapPin,
   Flag,
   Trophy,
-  Building
+  Building,
+  Check,
+  X
 } from "lucide-react";
 import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, VenueType, InsertTeam, InsertVenue, InsertSport, InsertCountry, InsertVenueType } from "@shared/schema";
 
@@ -437,6 +439,14 @@ export default function SuperAdminDashboard() {
 
   const handleDeleteBooking = (id: string) => {
     deleteBookingMutation.mutate(id);
+  };
+
+  const handleApproveBooking = (id: string) => {
+    updateBookingMutation.mutate({ id, data: { status: 'approved' } });
+  };
+
+  const handleCancelBooking = (id: string) => {
+    updateBookingMutation.mutate({ id, data: { status: 'cancelled' } });
   };
 
   // User CRUD mutations
@@ -1352,6 +1362,33 @@ export default function SuperAdminDashboard() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
+                              {/* Approve Button - Only show for pending bookings */}
+                              {booking.status === 'pending' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-green-600 hover:text-green-700"
+                                  onClick={() => handleApproveBooking(booking.id)}
+                                  data-testid={`approve-booking-${booking.id}`}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                              )}
+                              
+                              {/* Cancel Button - Only show for pending or approved bookings */}
+                              {(booking.status === 'pending' || booking.status === 'approved') && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-orange-600 hover:text-orange-700"
+                                  onClick={() => handleCancelBooking(booking.id)}
+                                  data-testid={`cancel-booking-${booking.id}`}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              )}
+                              
+                              {/* Delete Button */}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
