@@ -130,7 +130,7 @@ export default function Sidebar() {
       <div className={`px-4 py-6 border-b ${!isMobile && isCollapsed ? 'px-2' : ''}`}>
         <div className="flex items-center justify-between">
           <div className={`flex items-center ${!isMobile && isCollapsed ? 'justify-center' : 'space-x-3'}`}>
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
               {systemConfig?.logoUrl ? (
                 <img 
                   src={systemConfig.logoUrl}
@@ -139,7 +139,7 @@ export default function Sidebar() {
                   data-testid="sidebar-logo-image"
                 />
               ) : (
-                <Trophy className="text-white text-lg" data-testid="sidebar-logo" />
+                <Trophy className="text-gray-600 text-lg" data-testid="sidebar-logo" />
               )}
             </div>
             {(!isCollapsed || isMobile) && (

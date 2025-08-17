@@ -212,8 +212,8 @@ export default function MobileHeader({ isScrolled }: MobileHeaderProps) {
                 className="h-8 w-auto object-contain"
               />
             ) : (
-              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                <Crown className="h-5 w-5 text-primary-foreground" />
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+                <Crown className="h-5 w-5 text-gray-600" />
               </div>
             )}
             <span className="font-bold text-lg text-gray-900 hidden sm:block">
@@ -237,8 +237,8 @@ export default function MobileHeader({ isScrolled }: MobileHeaderProps) {
                   className="h-10 w-10 rounded-full object-cover"
                 />
               ) : (
-                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary-foreground">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center border-2 border-gray-200">
+                  <span className="text-sm font-medium text-gray-600">
                     {getUserInitials()}
                   </span>
                 </div>
