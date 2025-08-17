@@ -18,7 +18,7 @@ import {
   type InsertSport,
   type VenueType,
   type InsertVenueType,
-} from "@shared/schema";
+} from "@shared/types";
 import { z } from "zod";
 import multer from 'multer';
 import path from 'path';
