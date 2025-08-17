@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { User } from "@shared/schema";
+import type { User } from "@shared/types";
 
 // Add refresh function to update auth state
 let refreshAuthState: (() => void) | null = null;

@@ -72,7 +72,7 @@ import {
   Check,
   X
 } from "lucide-react";
-import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, VenueType, InsertTeam, InsertVenue, InsertSport, InsertCountry, InsertVenueType } from "@shared/schema";
+import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, VenueType, InsertTeam, InsertVenue, InsertSport, InsertCountry, InsertVenueType } from "@shared/types";
 
 interface UserFormData {
   username?: string;

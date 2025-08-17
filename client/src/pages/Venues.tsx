@@ -46,7 +46,7 @@ import {
   Upload,
   Image
 } from "lucide-react";
-import type { VenueWithDetails, BookingWithDetails, InsertVenue, VenueType } from "@shared/schema";
+import type { VenueWithDetails, BookingWithDetails, InsertVenue, VenueType } from "@shared/types";
 import BookingModal from "@/components/BookingModal";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { format, startOfDay, endOfDay } from "date-fns";

@@ -21,7 +21,7 @@ import {
   Trophy,
   Bell
 } from "lucide-react";
-import type { BookingWithDetails, VenueWithDetails, TeamWithDetails, NotificationWithDetails } from "@shared/schema";
+import type { BookingWithDetails, VenueWithDetails, TeamWithDetails, NotificationWithDetails } from "@shared/types";
 import { format, parseISO, isAfter } from "date-fns";
 import { useLocation } from "wouter";
 

@@ -178,6 +178,8 @@ export interface Booking {
   cancellationReason: string | null;
   queuePosition: number | null;
   estimatedWaitTime: number | null;
+  participantCount: number | null;
+  specialRequirements: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -202,6 +204,8 @@ export const insertBookingSchema = z.object({
   cancellationReason: z.string().optional().nullable(),
   queuePosition: z.number().optional().nullable(),
   estimatedWaitTime: z.number().optional().nullable(),
+  participantCount: z.number().optional().nullable(),
+  specialRequirements: z.string().optional().nullable(),
 });
 
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
@@ -237,7 +241,7 @@ export interface Notification {
   id: string;
   userId: string;
   senderId: string | null;
-  type: 'booking' | 'system' | 'reminder' | 'announcement';
+  type: 'booking' | 'system' | 'reminder' | 'announcement' | 'booking_approved' | 'booking_denied' | 'booking_cancelled';
   title: string;
   message: string;
   data: any | null;
@@ -253,7 +257,7 @@ export interface NotificationWithDetails extends Notification {
 export const insertNotificationSchema = z.object({
   userId: z.string(),
   senderId: z.string().optional().nullable(),
-  type: z.enum(['booking', 'system', 'reminder', 'announcement']),
+  type: z.enum(['booking', 'system', 'reminder', 'announcement', 'booking_approved', 'booking_denied', 'booking_cancelled']),
   title: z.string(),
   message: z.string(),
   data: z.any().optional().nullable(),
@@ -299,6 +303,19 @@ export interface SystemConfig {
   bookingRules: any | null;
   emailSettings: any | null;
   notificationSettings: any | null;
+  // UI Configuration
+  logoUrl: string | null;
+  logoSize: 'small' | 'medium' | 'large' | 'xlarge';
+  systemName: string | null;
+  systemSubtitle: string | null;
+  separatorImageUrl: string | null;
+  // Login page customization
+  loginHeading1: string | null;
+  loginHeading2: string | null;
+  loginHeading3: string | null;
+  // Booking rules
+  twoHourLimitEnabled: boolean;
+  maxBookingDuration: number; // in hours
   createdAt: Date;
   updatedAt: Date;
 }
@@ -312,6 +329,19 @@ export const insertSystemConfigSchema = z.object({
   bookingRules: z.any().optional().nullable(),
   emailSettings: z.any().optional().nullable(),
   notificationSettings: z.any().optional().nullable(),
+  // UI Configuration
+  logoUrl: z.string().optional().nullable(),
+  logoSize: z.enum(['small', 'medium', 'large', 'xlarge']).default('medium'),
+  systemName: z.string().optional().nullable(),
+  systemSubtitle: z.string().optional().nullable(),
+  separatorImageUrl: z.string().optional().nullable(),
+  // Login page customization
+  loginHeading1: z.string().optional().nullable(),
+  loginHeading2: z.string().optional().nullable(),
+  loginHeading3: z.string().optional().nullable(),
+  // Booking rules
+  twoHourLimitEnabled: z.boolean().default(false),
+  maxBookingDuration: z.number().default(4), // in hours
 });
 
 export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;

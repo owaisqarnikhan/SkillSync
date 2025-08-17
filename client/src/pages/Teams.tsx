@@ -54,7 +54,7 @@ import {
   MoreVertical,
   Plus
 } from "lucide-react";
-import type { TeamWithDetails, Country, Sport, InsertTeam } from "@shared/schema";
+import type { TeamWithDetails, Country, Sport, InsertTeam } from "@shared/types";
 
 export default function Teams() {
   const { toast } = useToast();

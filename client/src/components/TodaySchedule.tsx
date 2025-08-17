@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { format, isToday, parseISO } from "date-fns";
-import type { BookingWithDetails } from "@shared/schema";
+import type { BookingWithDetails } from "@shared/types";
 
 const statusConfig = {
   requested: { label: "New Request", variant: "default" as const, bgColor: "border-primary bg-primary/5" },

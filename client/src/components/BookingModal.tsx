@@ -34,7 +34,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { VenueWithDetails, TeamWithDetails, SystemConfig } from "@shared/schema";
+import type { VenueWithDetails, TeamWithDetails, SystemConfig } from "@shared/types";
 import { format, addDays } from "date-fns";
 
 const bookingSchema = z.object({

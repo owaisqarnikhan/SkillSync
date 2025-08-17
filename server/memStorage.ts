@@ -121,6 +121,7 @@ export class MemStorage implements IStorage {
     const country: Country = {
       ...countryData,
       id: this.generateId(),
+      flagUrl: countryData.flagUrl ?? null,
       isActive: countryData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -158,6 +159,8 @@ export class MemStorage implements IStorage {
     const sport: Sport = {
       ...sportData,
       id: this.generateId(),
+      category: sportData.category ?? null,
+      description: sportData.description ?? null,
       isActive: sportData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -195,6 +198,7 @@ export class MemStorage implements IStorage {
     const venueType: VenueType = {
       ...venueTypeData,
       id: this.generateId(),
+      description: venueTypeData.description ?? null,
       isActive: venueTypeData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -259,6 +263,9 @@ export class MemStorage implements IStorage {
     const team: Team = {
       ...teamData,
       id: this.generateId(),
+      managerId: teamData.managerId ?? null,
+      memberCount: teamData.memberCount || 0,
+      description: teamData.description ?? null,
       isActive: teamData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -317,6 +324,12 @@ export class MemStorage implements IStorage {
     const venue: Venue = {
       ...venueData,
       id: this.generateId(),
+      location: venueData.location ?? null,
+      description: venueData.description ?? null,
+      imageUrl: venueData.imageUrl ?? null,
+      managerId: venueData.managerId ?? null,
+      amenities: venueData.amenities ?? null,
+      attachmentUrl: venueData.attachmentUrl ?? null,
       isActive: venueData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -413,6 +426,14 @@ export class MemStorage implements IStorage {
     const booking: Booking = {
       ...bookingData,
       id: this.generateId(),
+      approverId: bookingData.approverId ?? null,
+      purpose: bookingData.purpose ?? null,
+      notes: bookingData.notes ?? null,
+      cancellationReason: bookingData.cancellationReason ?? null,
+      queuePosition: bookingData.queuePosition ?? null,
+      estimatedWaitTime: bookingData.estimatedWaitTime ?? null,
+      participantCount: bookingData.participantCount ?? null,
+      specialRequirements: bookingData.specialRequirements ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -489,6 +510,9 @@ export class MemStorage implements IStorage {
     const blackout: VenueBlackout = {
       ...blackoutData,
       id: this.generateId(),
+      reason: blackoutData.reason ?? null,
+      isRecurring: blackoutData.isRecurring ?? false,
+      recurrencePattern: blackoutData.recurrencePattern ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -516,6 +540,9 @@ export class MemStorage implements IStorage {
     const notification: Notification = {
       ...notificationData,
       id: this.generateId(),
+      senderId: notificationData.senderId ?? null,
+      data: notificationData.data ?? null,
+      readAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -551,6 +578,10 @@ export class MemStorage implements IStorage {
     const auditLog: AuditLog = {
       ...auditLogData,
       id: this.generateId(),
+      oldValues: auditLogData.oldValues ?? null,
+      newValues: auditLogData.newValues ?? null,
+      ipAddress: auditLogData.ipAddress ?? null,
+      userAgent: auditLogData.userAgent ?? null,
       createdAt: new Date(),
     };
     this.auditLogs.push(auditLog);
@@ -585,13 +616,30 @@ export class MemStorage implements IStorage {
       this.systemConfig = { ...this.systemConfig, ...configData, updatedAt: new Date() };
     } else {
       this.systemConfig = {
-        ...configData as InsertSystemConfig,
         id: this.generateId(),
+        maintenanceMode: configData.maintenanceMode ?? false,
+        registrationEnabled: configData.registrationEnabled ?? true,
+        bookingWindowDays: configData.bookingWindowDays ?? 30,
+        maxBookingsPerUser: configData.maxBookingsPerUser ?? 10,
+        maxBookingHours: configData.maxBookingHours ?? 4,
+        bookingRules: configData.bookingRules ?? null,
+        emailSettings: configData.emailSettings ?? null,
+        notificationSettings: configData.notificationSettings ?? null,
+        logoUrl: configData.logoUrl ?? null,
+        logoSize: configData.logoSize ?? 'medium',
+        systemName: configData.systemName ?? null,
+        systemSubtitle: configData.systemSubtitle ?? null,
+        separatorImageUrl: configData.separatorImageUrl ?? null,
+        loginHeading1: configData.loginHeading1 ?? null,
+        loginHeading2: configData.loginHeading2 ?? null,
+        loginHeading3: configData.loginHeading3 ?? null,
+        twoHourLimitEnabled: configData.twoHourLimitEnabled ?? false,
+        maxBookingDuration: configData.maxBookingDuration ?? 4,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
     }
-    return this.systemConfig;
+    return this.systemConfig!;
   }
 
   // Dashboard permissions operations

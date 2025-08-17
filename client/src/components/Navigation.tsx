@@ -19,7 +19,7 @@ import {
   Menu, 
   User 
 } from "lucide-react";
-import type { NotificationWithDetails } from "@shared/schema";
+import type { NotificationWithDetails } from "@shared/types";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Navigation() {

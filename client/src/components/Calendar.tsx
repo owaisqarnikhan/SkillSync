@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
-import type { BookingWithDetails } from "@shared/schema";
+import type { BookingWithDetails } from "@shared/types";
 
 interface CalendarProps {
   onDateClick?: (date: Date) => void;

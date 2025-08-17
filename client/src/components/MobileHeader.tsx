@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { getLogoSizeConfig } from "@/utils/logoUtils";
 import { Link, useLocation } from "wouter";
-import type { SystemConfig } from "@shared/schema";
+import type { SystemConfig } from "@shared/types";
 
 interface MobileHeaderProps {
   isScrolled: boolean;

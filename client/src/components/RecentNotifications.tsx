@@ -10,7 +10,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
-import type { NotificationWithDetails } from "@shared/schema";
+import type { NotificationWithDetails } from "@shared/types";
 
 const notificationIcons = {
   booking_approved: CheckCircle,

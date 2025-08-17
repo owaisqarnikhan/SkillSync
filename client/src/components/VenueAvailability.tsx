@@ -13,7 +13,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { format, startOfDay, endOfDay } from "date-fns";
-import type { Venue, BookingWithDetails } from "@shared/schema";
+import type { Venue, BookingWithDetails } from "@shared/types";
 
 const venueIcons = {
   swimming_pool: Waves,

@@ -27,7 +27,7 @@ import {
   Shield,
   Save
 } from "lucide-react";
-import type { SystemConfig } from "@shared/schema";
+import type { SystemConfig } from "@shared/types";
 import type { UploadResult } from "@uppy/core";
 
 export default function SystemAdmin() {

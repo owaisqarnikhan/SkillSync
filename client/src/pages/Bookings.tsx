@@ -56,7 +56,7 @@ import {
   Trash2
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import type { BookingWithDetails, VenueWithDetails, TeamWithDetails } from "@shared/schema";
+import type { BookingWithDetails, VenueWithDetails, TeamWithDetails } from "@shared/types";
 import BookingModal from "@/components/BookingModal";
 
 const statusConfig = {

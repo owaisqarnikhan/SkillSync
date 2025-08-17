@@ -22,7 +22,7 @@ import {
   BarChart3,
   Settings
 } from "lucide-react";
-import type { BookingWithDetails, VenueWithDetails, TeamWithDetails } from "@shared/schema";
+import type { BookingWithDetails, VenueWithDetails, TeamWithDetails } from "@shared/types";
 import { format, parseISO } from "date-fns";
 
 export default function ManagerDashboard() {
