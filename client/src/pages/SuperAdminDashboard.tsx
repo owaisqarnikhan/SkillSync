@@ -1915,7 +1915,7 @@ export default function SuperAdminDashboard() {
 
       {/* Team Modal */}
       <Dialog open={teamModalOpen} onOpenChange={setTeamModalOpen}>
-        <DialogContent className="max-w-[600px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[600px] sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{selectedTeam ? 'Edit Team' : 'Create New Team'}</DialogTitle>
             <DialogDescription>
@@ -1983,12 +1983,13 @@ export default function SuperAdminDashboard() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTeamModalOpen(false)}>Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setTeamModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button
               onClick={handleTeamSubmit}
               disabled={!teamFormData.name || !teamFormData.countryId || !teamFormData.sportId || createTeamMutation.isPending || updateTeamMutation.isPending}
               data-testid="team-submit-button"
+              className="w-full sm:w-auto"
             >
               {selectedTeam ? 'Update Team' : 'Create Team'}
             </Button>
@@ -1998,7 +1999,7 @@ export default function SuperAdminDashboard() {
 
       {/* Venue Modal */}
       <Dialog open={venueModalOpen} onOpenChange={setVenueModalOpen}>
-        <DialogContent className="max-w-[600px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[600px] sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{selectedVenue ? 'Edit Venue' : 'Create New Venue'}</DialogTitle>
             <DialogDescription>
@@ -2071,12 +2072,13 @@ export default function SuperAdminDashboard() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setVenueModalOpen(false)}>Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setVenueModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button
               onClick={handleVenueSubmit}
               disabled={!venueFormData.name || !venueFormData.venueTypeId || !venueFormData.location || !venueFormData.capacity || createVenueMutation.isPending || updateVenueMutation.isPending}
               data-testid="venue-submit-button"
+              className="w-full sm:w-auto"
             >
               {selectedVenue ? 'Update Venue' : 'Create Venue'}
             </Button>
@@ -2086,7 +2088,7 @@ export default function SuperAdminDashboard() {
 
       {/* User Modal */}
       <Dialog open={userModalOpen} onOpenChange={setUserModalOpen}>
-        <DialogContent className="max-w-[600px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[600px] sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{selectedUser ? 'Edit User' : 'Create New User'}</DialogTitle>
             <DialogDescription>
@@ -2203,8 +2205,8 @@ export default function SuperAdminDashboard() {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUserModalOpen(false)}>Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setUserModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button
               onClick={handleUserSubmit}
               disabled={
@@ -2214,6 +2216,7 @@ export default function SuperAdminDashboard() {
                 updateUserMutation.isPending
               }
               data-testid="user-submit-button"
+              className="w-full sm:w-auto"
             >
               {selectedUser ? 'Update User' : 'Create User'}
             </Button>
@@ -2223,7 +2226,7 @@ export default function SuperAdminDashboard() {
 
       {/* Sports Modal */}
       <Dialog open={sportsModalOpen} onOpenChange={setSportsModalOpen}>
-        <DialogContent className="max-w-[500px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[500px] sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{selectedSport ? 'Edit Sport' : 'Create New Sport'}</DialogTitle>
             <DialogDescription>
@@ -2338,7 +2341,7 @@ export default function SuperAdminDashboard() {
 
       {/* Venue Type Modal */}
       <Dialog open={venueTypeModalOpen} onOpenChange={setVenueTypeModalOpen}>
-        <DialogContent className="max-w-[500px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[500px] sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{selectedVenueType ? 'Edit Venue Type' : 'Create New Venue Type'}</DialogTitle>
             <DialogDescription>
@@ -2368,12 +2371,13 @@ export default function SuperAdminDashboard() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setVenueTypeModalOpen(false)}>Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setVenueTypeModalOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button
               onClick={handleVenueTypeSubmit}
               disabled={!venueTypeFormData.name || createVenueTypeMutation.isPending || updateVenueTypeMutation.isPending}
               data-testid="venue-type-submit-button"
+              className="w-full sm:w-auto"
             >
               {selectedVenueType ? 'Update Venue Type' : 'Create Venue Type'}
             </Button>
