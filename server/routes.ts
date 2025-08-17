@@ -18,6 +18,40 @@ import {
   type InsertVenueType,
 } from "@shared/schema";
 import { z } from "zod";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(process.cwd(), 'uploads', 'temp');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for local file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+      // Generate unique filename with timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, `${uniqueSuffix}-${file.originalname}`);
+    }
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 // Helper function to create audit log
 async function createAuditLog(
@@ -345,14 +379,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Object storage upload error:", error);
       // Temporary fallback when object storage is not configured
       if (error instanceof Error && error.message.includes('PRIVATE_OBJECT_DIR not set')) {
-        res.status(503).json({ 
-          error: "File upload is temporarily unavailable. Object storage needs to be configured.",
-          message: "Please set up object storage in the Replit workspace to enable file uploads." 
+        // Return a temporary local upload endpoint as fallback
+        const localUploadUrl = `${req.protocol}://${req.get('host')}/api/objects/upload-local`;
+        res.json({ 
+          uploadURL: localUploadUrl,
+          isLocalFallback: true,
+          message: "Using temporary local storage. Please set up object storage for production use."
         });
       } else {
         res.status(500).json({ error: "Internal server error" });
       }
     }
+  });
+
+  // Local file upload endpoint (fallback when object storage is not configured)
+  app.post("/api/objects/upload-local", isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Return the file URL that can be used to access the uploaded file
+      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/temp/${req.file.filename}`;
+      
+      res.json({
+        success: true,
+        url: fileUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        isLocalUpload: true,
+        message: "File uploaded to temporary local storage. Please set up object storage for production use."
+      });
+    } catch (error) {
+      console.error("Local file upload error:", error);
+      res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+
+  // Serve local uploaded files
+  app.get("/uploads/temp/:filename", (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(uploadsDir, filename);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+    
+    // Set appropriate headers
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.sendFile(filePath);
   });
 
   // Teams routes
