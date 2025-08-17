@@ -256,8 +256,10 @@ export default function Venues() {
       const response = await apiRequest("POST", "/api/objects/upload");
       const data = await response.json();
       return {
-        method: "PUT" as const,
+        method: data.isLocalFallback ? "POST" as const : "PUT" as const,
         url: data.uploadURL,
+        uploadURL: data.uploadURL,
+        isLocalFallback: data.isLocalFallback,
       };
     } catch (error) {
       toast({

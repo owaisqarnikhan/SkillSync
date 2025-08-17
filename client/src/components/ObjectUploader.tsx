@@ -14,7 +14,7 @@ interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
   onGetUploadParameters: () => Promise<{
-    method?: "PUT";
+    method?: "PUT" | "POST";
     url: string;
     uploadURL?: string;
     isLocalFallback?: boolean;
