@@ -95,11 +95,13 @@ export default function SecureLogin() {
                   {/* Logo Section */}
                   <div className="text-center lg:text-left">
                     {systemConfig?.logoUrl && (
-                      <img 
-                        src={systemConfig.logoUrl} 
-                        alt="Logo" 
-                        className="h-16 w-auto mx-auto lg:mx-0 mb-6"
-                      />
+                      <div className="inline-block bg-blue-600 rounded-lg p-3 mb-6">
+                        <img 
+                          src={systemConfig.logoUrl} 
+                          alt="Logo" 
+                          className="h-12 w-auto"
+                        />
+                      </div>
                     )}
                   </div>
 
@@ -215,44 +217,14 @@ export default function SecureLogin() {
 
               {/* Right Panel - Separator Image */}
               <div 
-                className="hidden lg:block bg-cover bg-center bg-no-repeat relative"
+                className="hidden lg:block bg-cover bg-center bg-no-repeat"
                 style={{
                   backgroundImage: systemConfig?.separatorImageUrl 
                     ? `url(${systemConfig.separatorImageUrl})` 
                     : `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`
                 }}
               >
-                {/* Overlay for better contrast */}
-                <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-                
-                {/* Content overlay */}
-                <div className="relative h-full flex flex-col justify-center items-center text-white p-12">
-                  <div className="text-center space-y-6">
-                    <div className="w-24 h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
-                      <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7H7a1 1 0 100 2h6a1 1 0 100-2zm-6 4a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <h3 className="text-2xl font-bold">Streamlined Management</h3>
-                    <p className="text-lg opacity-90">
-                      Advanced booking system designed specifically for the Bahrain Asian Youth Games 2025
-                    </p>
-                    <div className="flex space-x-8 justify-center pt-4">
-                      <div className="text-center">
-                        <div className="text-3xl font-bold">50+</div>
-                        <div className="text-sm opacity-75">Venues</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-3xl font-bold">30+</div>
-                        <div className="text-sm opacity-75">Countries</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-3xl font-bold">24/7</div>
-                        <div className="text-sm opacity-75">Support</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+
               </div>
             </div>
           </Card>
