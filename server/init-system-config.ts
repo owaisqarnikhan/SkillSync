@@ -1,56 +1,61 @@
-import { db } from "./db";
-import { systemConfig, dashboardPermissions } from "@shared/schema";
-import { sql } from "drizzle-orm";
+import { storage } from "./storage";
 
 // Initialize system configuration and dashboard permissions
 export async function initializeSystemConfig() {
   try {
     // Check if system config already exists
-    const existingConfig = await db.select().from(systemConfig).limit(1);
+    const existingConfig = await storage.getSystemConfig();
     
-    if (existingConfig.length === 0) {
+    if (!existingConfig) {
       // Create default system configuration
-      await db.insert(systemConfig).values({
-        loginHeading1: "Welcome to",
-        loginHeading2: "Bahrain Asian Youth Games 2025", 
-        loginHeading3: "Training Management System",
-        logoUrl: null,
-        separatorImageUrl: null,
-        smtpHost: "smtp.office365.com",
-        smtpPort: 587,
-        smtpUsername: null,
-        smtpPassword: null,
-        smtpFromEmail: "noreply@bahrain2025.com",
-        smtpFromName: "Training Management System",
-        smtpSecure: true,
-        twoHourLimitEnabled: true,
+      await storage.updateSystemConfig({
+        maintenanceMode: false,
+        registrationEnabled: true,
+        bookingWindowDays: 30,
+        maxBookingsPerUser: 10,
+        maxBookingHours: 4,
+        bookingRules: {
+          loginHeading1: "Welcome to",
+          loginHeading2: "Bahrain Asian Youth Games 2025", 
+          loginHeading3: "Training Management System",
+          logoUrl: null,
+          separatorImageUrl: null,
+          smtpHost: "smtp.office365.com",
+          smtpPort: 587,
+          smtpUsername: null,
+          smtpPassword: null,
+          smtpFromEmail: "noreply@bahrain2025.com",
+          smtpFromName: "Training Management System",
+          smtpSecure: true,
+          twoHourLimitEnabled: true,
+        },
+        emailSettings: null,
+        notificationSettings: null,
       });
       console.log("✓ Default system configuration created");
     }
 
-    // Check if dashboard permissions already exist
-    const existingPermissions = await db.select().from(dashboardPermissions).limit(1);
-    
-    if (existingPermissions.length === 0) {
-      // Create default dashboard permissions
-      const defaultPermissions = [
-        { role: "superadmin" as const, dashboardType: "superadmin", canAccess: true },
-        { role: "superadmin" as const, dashboardType: "manager", canAccess: true },
-        { role: "superadmin" as const, dashboardType: "user", canAccess: true },
-        { role: "manager" as const, dashboardType: "superadmin", canAccess: false },
-        { role: "manager" as const, dashboardType: "manager", canAccess: true },
-        { role: "manager" as const, dashboardType: "user", canAccess: false },
-        { role: "user" as const, dashboardType: "superadmin", canAccess: false },
-        { role: "user" as const, dashboardType: "manager", canAccess: false },
-        { role: "user" as const, dashboardType: "user", canAccess: true },
-        { role: "customer" as const, dashboardType: "superadmin", canAccess: false },
-        { role: "customer" as const, dashboardType: "manager", canAccess: false },
-        { role: "customer" as const, dashboardType: "user", canAccess: true },
-      ];
+    // Create default dashboard permissions
+    const defaultPermissions = [
+      { role: "superadmin" as const, resource: "dashboard", action: "access", allowed: true },
+      { role: "superadmin" as const, resource: "users", action: "manage", allowed: true },
+      { role: "superadmin" as const, resource: "venues", action: "manage", allowed: true },
+      { role: "manager" as const, resource: "dashboard", action: "access", allowed: true },
+      { role: "manager" as const, resource: "bookings", action: "manage", allowed: true },
+      { role: "user" as const, resource: "dashboard", action: "access", allowed: true },
+      { role: "user" as const, resource: "bookings", action: "create", allowed: true },
+      { role: "customer" as const, resource: "dashboard", action: "access", allowed: true },
+      { role: "customer" as const, resource: "bookings", action: "create", allowed: true },
+    ];
 
-      await db.insert(dashboardPermissions).values(defaultPermissions);
-      console.log("✓ Default dashboard permissions created");
+    for (const permission of defaultPermissions) {
+      try {
+        await storage.createDashboardPermission(permission);
+      } catch (error) {
+        // Permission might already exist, ignore error
+      }
     }
+    console.log("✓ Default dashboard permissions created");
 
     console.log("✓ System initialization completed successfully");
   } catch (error) {
