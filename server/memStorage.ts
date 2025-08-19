@@ -28,6 +28,7 @@ import type {
   InsertSystemConfig,
   DashboardPermission,
   InsertDashboardPermission,
+  AdminBooking,
 } from "@shared/types";
 
 export class MemStorage implements IStorage {
@@ -434,6 +435,10 @@ export class MemStorage implements IStorage {
       estimatedWaitTime: bookingData.estimatedWaitTime ?? null,
       participantCount: bookingData.participantCount ?? null,
       specialRequirements: bookingData.specialRequirements ?? null,
+      createdBy: bookingData.createdBy ?? null,
+      priority: bookingData.priority ?? 'normal',
+      isAdminBooking: bookingData.isAdminBooking ?? false,
+      overriddenBookingId: bookingData.overriddenBookingId ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -499,6 +504,147 @@ export class MemStorage implements IStorage {
     return this.users
       .filter(user => user.role === 'superadmin' && user.email)
       .map(user => user.email!);
+  }
+
+  // Super Admin booking operations
+  async createAdminBooking(adminBooking: AdminBooking, createdBy: string): Promise<{ 
+    booking: Booking; 
+    overriddenBooking?: Booking; 
+    conflictingBookings?: BookingWithDetails[] 
+  }> {
+    const { venueId, teamId, startDateTime, endDateTime, forceOverride, ...rest } = adminBooking;
+    
+    // Check for conflicts
+    const conflictCheck = await this.checkBookingConflictsWithDetails(venueId, startDateTime, endDateTime);
+    
+    let overriddenBooking: Booking | undefined;
+    
+    if (conflictCheck.hasConflict && forceOverride) {
+      // Cancel conflicting bookings
+      for (const conflictingBooking of conflictCheck.conflictingBookings) {
+        overriddenBooking = await this.updateBooking(conflictingBooking.id, {
+          status: 'cancelled',
+          cancellationReason: 'Overridden by Super Admin booking',
+          updatedAt: new Date()
+        });
+      }
+    } else if (conflictCheck.hasConflict && !forceOverride) {
+      // Return conflict information without creating booking
+      return {
+        booking: {} as Booking, // Empty booking object
+        conflictingBookings: conflictCheck.conflictingBookings
+      };
+    }
+
+    // Create the admin booking
+    const bookingData: InsertBooking = {
+      venueId,
+      teamId,
+      requesterId: createdBy,
+      status: 'approved', // Admin bookings are auto-approved
+      startDateTime,
+      endDateTime,
+      ...rest,
+      createdBy,
+      priority: adminBooking.priority,
+      isAdminBooking: true,
+      overriddenBookingId: overriddenBooking?.id || null,
+    };
+
+    const booking = await this.createBooking(bookingData);
+    
+    return {
+      booking,
+      overriddenBooking,
+    };
+  }
+
+  async checkBookingConflictsWithDetails(venueId: string, startDateTime: Date, endDateTime: Date): Promise<{
+    hasConflict: boolean;
+    conflictingBookings: BookingWithDetails[];
+  }> {
+    const conflictingBookings = this.bookings.filter(booking => 
+      booking.venueId === venueId &&
+      (booking.status === 'approved' || booking.status === 'pending') &&
+      ((new Date(booking.startDateTime) < endDateTime && new Date(booking.endDateTime) > startDateTime))
+    );
+    
+    const conflictingBookingsWithDetails: BookingWithDetails[] = conflictingBookings.map(booking => {
+      const venue = this.venues.find(v => v.id === booking.venueId)!;
+      const team = this.teams.find(t => t.id === booking.teamId)!;
+      const requester = this.users.find(u => u.id === booking.requesterId)!;
+      const approver = booking.approverId ? this.users.find(u => u.id === booking.approverId) : undefined;
+      const creator = booking.createdBy ? this.users.find(u => u.id === booking.createdBy) : undefined;
+      const overriddenBooking = booking.overriddenBookingId ? this.bookings.find(b => b.id === booking.overriddenBookingId) : undefined;
+
+      return {
+        ...booking,
+        venue,
+        team,
+        requester,
+        approver,
+        creator,
+        overriddenBooking,
+      };
+    });
+    
+    return {
+      hasConflict: conflictingBookings.length > 0,
+      conflictingBookings: conflictingBookingsWithDetails,
+    };
+  }
+
+  async getSuggestedAlternativeSlots(venueId: string, startDateTime: Date, endDateTime: Date, duration: number): Promise<{
+    startDateTime: Date;
+    endDateTime: Date;
+    venueId: string;
+    venueName: string;
+  }[]> {
+    const venue = this.venues.find(v => v.id === venueId);
+    if (!venue) return [];
+
+    const suggestedSlots = [];
+    const requestedDate = new Date(startDateTime.getFullYear(), startDateTime.getMonth(), startDateTime.getDate());
+    
+    // Check same venue for alternative time slots
+    const workingStartHour = parseInt(venue.workingStartTime.split(':')[0]);
+    const workingEndHour = parseInt(venue.workingEndTime.split(':')[0]);
+    
+    for (let hour = workingStartHour; hour <= workingEndHour - Math.ceil(duration / 60); hour++) {
+      const slotStart = new Date(requestedDate);
+      slotStart.setHours(hour, 0, 0, 0);
+      const slotEnd = new Date(slotStart);
+      slotEnd.setMinutes(slotEnd.getMinutes() + duration);
+      
+      // Skip if this is the requested time slot
+      if (slotStart.getTime() === startDateTime.getTime()) continue;
+      
+      const conflictCheck = await this.checkBookingConflicts(venueId, slotStart, slotEnd);
+      if (!conflictCheck) {
+        suggestedSlots.push({
+          startDateTime: slotStart,
+          endDateTime: slotEnd,
+          venueId: venue.id,
+          venueName: venue.name,
+        });
+      }
+    }
+    
+    // Also check other venues for the same time slot
+    const otherVenues = this.venues.filter(v => v.id !== venueId && v.isActive);
+    for (const otherVenue of otherVenues) {
+      const conflictCheck = await this.checkBookingConflicts(otherVenue.id, startDateTime, endDateTime);
+      if (!conflictCheck) {
+        suggestedSlots.push({
+          startDateTime,
+          endDateTime,
+          venueId: otherVenue.id,
+          venueName: otherVenue.name,
+        });
+      }
+    }
+    
+    return suggestedSlots.slice(0, 5); // Return top 5 suggestions
   }
 
   // Venue blackout operations

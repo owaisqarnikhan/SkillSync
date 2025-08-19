@@ -27,6 +27,7 @@ import type {
   InsertSystemConfig,
   DashboardPermission,
   InsertDashboardPermission,
+  AdminBooking,
 } from "@shared/types";
 
 import { MemStorage } from "./memStorage";
@@ -92,6 +93,23 @@ export interface IStorage {
   checkBookingConflicts(venueId: string, startDateTime: Date, endDateTime: Date, excludeBookingId?: string): Promise<boolean>;
   getAvailableTimeSlots(venueId: string, date: string): Promise<{ startTime: string; endTime: string; available: boolean }[]>;
   getAdminEmails(): Promise<string[]>;
+  
+  // Super Admin booking operations
+  createAdminBooking(adminBooking: AdminBooking, createdBy: string): Promise<{ 
+    booking: Booking; 
+    overriddenBooking?: Booking; 
+    conflictingBookings?: BookingWithDetails[] 
+  }>;
+  checkBookingConflictsWithDetails(venueId: string, startDateTime: Date, endDateTime: Date): Promise<{
+    hasConflict: boolean;
+    conflictingBookings: BookingWithDetails[];
+  }>;
+  getSuggestedAlternativeSlots(venueId: string, startDateTime: Date, endDateTime: Date, duration: number): Promise<{
+    startDateTime: Date;
+    endDateTime: Date;
+    venueId: string;
+    venueName: string;
+  }[]>;
   
   // Venue blackout operations
   getVenueBlackouts(venueId?: string): Promise<VenueBlackout[]>;

@@ -180,6 +180,10 @@ export interface Booking {
   estimatedWaitTime: number | null;
   participantCount: number | null;
   specialRequirements: string | null;
+  createdBy: string | null; // Who created the booking (for Super Admin bookings)
+  priority: 'normal' | 'high' | 'admin_override'; // Priority level for Super Admin bookings
+  isAdminBooking: boolean; // Flag to indicate if booked by Super Admin
+  overriddenBookingId: string | null; // Reference to original booking if this was an override
   createdAt: Date;
   updatedAt: Date;
 }
@@ -189,6 +193,8 @@ export interface BookingWithDetails extends Booking {
   team: Team;
   requester: User;
   approver?: User;
+  creator?: User; // User who created the booking (for Super Admin bookings)
+  overriddenBooking?: Booking; // Original booking if this was an override
 }
 
 export const insertBookingSchema = z.object({
@@ -206,9 +212,41 @@ export const insertBookingSchema = z.object({
   estimatedWaitTime: z.number().optional().nullable(),
   participantCount: z.number().optional().nullable(),
   specialRequirements: z.string().optional().nullable(),
+  createdBy: z.string().optional().nullable(),
+  priority: z.enum(['normal', 'high', 'admin_override']).default('normal'),
+  isAdminBooking: z.boolean().default(false),
+  overriddenBookingId: z.string().optional().nullable(),
 });
 
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
+
+// Super Admin Booking schema for creating bookings on behalf of teams
+export const adminBookingSchema = z.object({
+  venueId: z.string(),
+  teamId: z.string(),
+  startDateTime: z.date(),
+  endDateTime: z.date(),
+  purpose: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  participantCount: z.number().optional().nullable(),
+  specialRequirements: z.string().optional().nullable(),
+  priority: z.enum(['normal', 'high', 'admin_override']).default('high'),
+  forceOverride: z.boolean().default(false), // For conflict resolution
+});
+
+export type AdminBooking = z.infer<typeof adminBookingSchema>;
+
+// Conflict resolution response type
+export interface BookingConflictResponse {
+  hasConflict: boolean;
+  conflictingBookings: BookingWithDetails[];
+  suggestedSlots: {
+    startDateTime: Date;
+    endDateTime: Date;
+    venueId: string;
+    venueName: string;
+  }[];
+}
 
 // VenueBlackout types
 export interface VenueBlackout {

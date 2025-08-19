@@ -14,10 +14,13 @@ import {
   insertAuditLogSchema,
   insertSportSchema,
   insertVenueTypeSchema,
+  adminBookingSchema,
   type Sport,
   type InsertSport,
   type VenueType,
   type InsertVenueType,
+  type AdminBooking,
+  type BookingConflictResponse,
 } from "@shared/types";
 import { z } from "zod";
 import multer from 'multer';
@@ -746,9 +749,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : user.username,
           teamName: team.name,
           venueName: venue.name,
-          startDateTime: validatedData.startDateTime,
-          endDateTime: validatedData.endDateTime,
-          participantCount: validatedData.participantCount,
+          startDateTime: validatedData.startDateTime.toISOString(),
+          endDateTime: validatedData.endDateTime.toISOString(),
+          participantCount: validatedData.participantCount || 0,
           specialRequirements: validatedData.specialRequirements || undefined,
         });
 
@@ -770,9 +773,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : user.username,
             teamName: team.name,
             venueName: venue.name,
-            startDateTime: validatedData.startDateTime,
-            endDateTime: validatedData.endDateTime,
-            participantCount: validatedData.participantCount,
+            startDateTime: validatedData.startDateTime.toISOString(),
+            endDateTime: validatedData.endDateTime.toISOString(),
+            participantCount: validatedData.participantCount || 0,
           });
 
           await emailService.sendEmail({
@@ -796,6 +799,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create booking" });
+    }
+  });
+
+  // Super Admin Booking Routes
+  app.post('/api/admin/bookings', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only Super Admins can create admin bookings" });
+      }
+
+      const validatedData = adminBookingSchema.parse({
+        ...req.body,
+        startDateTime: new Date(req.body.startDateTime),
+        endDateTime: new Date(req.body.endDateTime),
+      });
+
+      const result = await storage.createAdminBooking(validatedData, req.user.id);
+
+      // If there are conflicting bookings and force override was not requested
+      if (result.conflictingBookings && !validatedData.forceOverride) {
+        const suggestedSlots = await storage.getSuggestedAlternativeSlots(
+          validatedData.venueId,
+          validatedData.startDateTime,
+          validatedData.endDateTime,
+          (validatedData.endDateTime.getTime() - validatedData.startDateTime.getTime()) / (1000 * 60) // duration in minutes
+        );
+
+        return res.status(409).json({
+          message: "Booking conflicts detected",
+          hasConflict: true,
+          conflictingBookings: result.conflictingBookings,
+          suggestedSlots: suggestedSlots
+        });
+      }
+
+      // If booking was successfully created
+      if (result.booking && result.booking.id) {
+        // Get booking details for notifications
+        const [team, venue] = await Promise.all([
+          storage.getTeam(validatedData.teamId),
+          storage.getVenue(validatedData.venueId)
+        ]);
+
+        if (team && venue) {
+          // Notify the team's NOC user about the admin booking
+          const teamUsers = await storage.getAllUsers();
+          const nocUser = teamUsers.find(u => u.countryCode === team.country.code && u.role === 'customer');
+          
+          if (nocUser) {
+            await storage.createNotification({
+              userId: nocUser.id,
+              senderId: req.user.id,
+              type: 'booking_approved',
+              title: 'Booking Created by Super Admin',
+              message: `A training session has been booked for your team ${team.name} at ${venue.name} from ${validatedData.startDateTime.toLocaleString()} to ${validatedData.endDateTime.toLocaleString()}`,
+              data: { 
+                bookingId: result.booking.id,
+                type: 'admin_booking'
+              }
+            });
+
+            // Send email notification if NOC user has email
+            if (nocUser.email) {
+              const emailContent = emailService.generateBookingConfirmationEmail({
+                userName: nocUser.firstName && nocUser.lastName 
+                  ? `${nocUser.firstName} ${nocUser.lastName}` 
+                  : nocUser.username,
+                teamName: team.name,
+                venueName: venue.name,
+                startDateTime: validatedData.startDateTime.toISOString(),
+                endDateTime: validatedData.endDateTime.toISOString(),
+                participantCount: validatedData.participantCount || 0,
+                specialRequirements: validatedData.specialRequirements || undefined,
+              });
+
+              await emailService.sendEmail({
+                to: nocUser.email,
+                subject: `[Admin Booking] ${emailContent.subject}`,
+                html: `<p><strong>This booking was created by Super Admin</strong></p>${emailContent.html}`,
+                text: `[Admin Booking] ${emailContent.text}`,
+              });
+            }
+          }
+
+          // If a booking was overridden, notify the original requester
+          if (result.overriddenBooking) {
+            const originalRequester = await storage.getUser(result.overriddenBooking.requesterId);
+            if (originalRequester) {
+              await storage.createNotification({
+                userId: originalRequester.id,
+                senderId: req.user.id,
+                type: 'booking_cancelled',
+                title: 'Booking Overridden by Super Admin',
+                message: `Your booking at ${venue.name} from ${new Date(result.overriddenBooking.startDateTime).toLocaleString()} to ${new Date(result.overriddenBooking.endDateTime).toLocaleString()} has been cancelled due to a priority booking.`,
+                data: { 
+                  bookingId: result.overriddenBooking.id,
+                  type: 'override_cancellation'
+                }
+              });
+            }
+          }
+        }
+
+        await createAuditLog(req, 'CREATE', 'booking', result.booking.id, null, validatedData);
+        
+        res.status(201).json({
+          booking: result.booking,
+          overriddenBooking: result.overriddenBooking,
+          message: result.overriddenBooking ? 'Admin booking created and conflicting booking cancelled' : 'Admin booking created successfully'
+        });
+      } else {
+        res.status(500).json({ message: "Failed to create admin booking" });
+      }
+    } catch (error) {
+      console.error("Error creating admin booking:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create admin booking" });
+    }
+  });
+
+  // Check booking conflicts for Super Admin
+  app.post('/api/admin/bookings/check-conflicts', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { venueId, startDateTime, endDateTime } = req.body;
+      
+      if (!venueId || !startDateTime || !endDateTime) {
+        return res.status(400).json({ message: "venueId, startDateTime, and endDateTime are required" });
+      }
+
+      const result = await storage.checkBookingConflictsWithDetails(
+        venueId,
+        new Date(startDateTime),
+        new Date(endDateTime)
+      );
+
+      if (result.hasConflict) {
+        const duration = (new Date(endDateTime).getTime() - new Date(startDateTime).getTime()) / (1000 * 60);
+        const suggestedSlots = await storage.getSuggestedAlternativeSlots(
+          venueId,
+          new Date(startDateTime),
+          new Date(endDateTime),
+          duration
+        );
+
+        res.json({
+          hasConflict: true,
+          conflictingBookings: result.conflictingBookings,
+          suggestedSlots: suggestedSlots
+        });
+      } else {
+        res.json({
+          hasConflict: false,
+          conflictingBookings: [],
+          suggestedSlots: []
+        });
+      }
+    } catch (error) {
+      console.error("Error checking booking conflicts:", error);
+      res.status(500).json({ message: "Failed to check booking conflicts" });
     }
   });
 
@@ -937,7 +1107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: notificationType,
           title: `Booking ${updates.status}`,
           message: `Your booking has been ${updates.status}`,
-          bookingId: req.params.id,
+          data: { bookingId: req.params.id },
         });
       }
 
@@ -976,7 +1146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: 'booking_cancelled',
         title: 'Booking Cancelled',
         message: 'Your booking has been cancelled',
-        bookingId: req.params.id,
+        data: { bookingId: req.params.id },
       });
 
       await createAuditLog(req, 'DELETE', 'booking', req.params.id, existingBooking, null);

@@ -73,6 +73,7 @@ import {
   X
 } from "lucide-react";
 import type { SystemConfig, DashboardPermission, User, TeamWithDetails, VenueWithDetails, BookingWithDetails, Country, Sport, VenueType, InsertTeam, InsertVenue, InsertSport, InsertCountry, InsertVenueType } from "@shared/types";
+import SuperAdminBookingModal from "@/components/SuperAdminBookingModal";
 
 interface UserFormData {
   username?: string;
@@ -120,6 +121,9 @@ export default function SuperAdminDashboard() {
   const [venueTypeModalOpen, setVenueTypeModalOpen] = useState(false);
   const [selectedVenueType, setSelectedVenueType] = useState<VenueType | null>(null);
   const [venueTypeFormData, setVenueTypeFormData] = useState<Partial<InsertVenueType>>({});
+
+  // Super Admin Booking state
+  const [adminBookingModalOpen, setAdminBookingModalOpen] = useState(false);
 
   // Redirect if not SuperAdmin
   useEffect(() => {
@@ -1320,122 +1324,57 @@ export default function SuperAdminDashboard() {
           <TabsContent value="bookings" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="w-5 h-5" />
-                  <span>Bookings Management</span>
-                </CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Calendar className="w-5 h-5" />
+                    <span>Training Venue Bookings</span>
+                  </CardTitle>
+                  <Button 
+                    onClick={() => setAdminBookingModalOpen(true)} 
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Admin Booking
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                {bookings.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Venue</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead>Date & Time</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {bookings.map((booking) => (
-                        <TableRow key={booking.id}>
-                          <TableCell className="font-medium">{booking.venue?.name || 'N/A'}</TableCell>
-                          <TableCell>{booking.team?.name || 'N/A'}</TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <div>{new Date(booking.startDateTime).toLocaleDateString()}</div>
-                              <div className="text-muted-foreground">
-                                {new Date(booking.startDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
-                                {new Date(booking.endDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {Math.round((new Date(booking.endDateTime).getTime() - new Date(booking.startDateTime).getTime()) / (1000 * 60 * 60 * 100)) / 10}h
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={booking.status === 'approved' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}>
-                              {booking.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              {/* Approve Button - Only show for pending bookings */}
-                              {booking.status === 'pending' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-green-600 hover:text-green-700"
-                                  onClick={() => handleApproveBooking(booking.id)}
-                                  data-testid={`approve-booking-${booking.id}`}
-                                >
-                                  <Check className="w-4 h-4" />
-                                </Button>
-                              )}
-                              
-                              {/* Cancel Button - Only show for pending or approved bookings */}
-                              {(booking.status === 'pending' || booking.status === 'approved') && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-orange-600 hover:text-orange-700"
-                                  onClick={() => handleCancelBooking(booking.id)}
-                                  data-testid={`cancel-booking-${booking.id}`}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              )}
-                              
-                              {/* Delete Button */}
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-red-600 hover:text-red-700"
-                                    data-testid={`delete-booking-${booking.id}`}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Booking</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete this booking? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDeleteBooking(booking.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-12">
-                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-lg font-medium text-gray-900 mb-2">No Bookings Found</p>
-                    <p className="text-muted-foreground">
-                      Bookings will appear here once teams start making reservations.
-                    </p>
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-2">Super Admin Booking Features</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Create priority bookings for any team</li>
+                      <li>• Override existing bookings when necessary</li>
+                      <li>• Automatic conflict detection and resolution</li>
+                      <li>• Alternative time slot suggestions</li>
+                      <li>• Notification system for affected users</li>
+                    </ul>
                   </div>
-                )}
+                  
+                  <div className="text-center py-8">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">Enhanced Booking Management</p>
+                    <p className="text-muted-foreground mb-4">
+                      Create and manage training venue bookings with enhanced Super Admin capabilities.
+                    </p>
+                    <Button 
+                      onClick={() => setAdminBookingModalOpen(true)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Admin Booking
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
+
+      {/* Super Admin Booking Modal */}
+      <SuperAdminBookingModal 
+        open={adminBookingModalOpen}
+        onOpenChange={setAdminBookingModalOpen}
+      />
 
           {/* Users Management Tab */}
           <TabsContent value="users" className="space-y-6">
