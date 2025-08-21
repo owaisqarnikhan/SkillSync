@@ -146,7 +146,12 @@ export default function SuperAdminDashboard() {
     enabled: isAuthenticated && user?.role === 'superadmin',
   });
 
-  // Fetch dashboard permissions
+  // Fetch comprehensive permission matrix
+  const { data: permissionMatrix, refetch: refetchPermissions } = useQuery({
+    queryKey: ["/api/permissions/matrix"],
+    enabled: isAuthenticated && user?.role === 'superadmin',
+  });
+  
   const { data: permissions = [] } = useQuery<DashboardPermission[]>({
     queryKey: ["/api/dashboard/permissions"],
     enabled: isAuthenticated && user?.role === 'superadmin',

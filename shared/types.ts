@@ -384,8 +384,8 @@ export const insertSystemConfigSchema = z.object({
 
 export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;
 
-// DashboardPermission types
-export interface DashboardPermission {
+// Permission types
+export interface Permission {
   id: string;
   role: 'superadmin' | 'manager' | 'user' | 'customer';
   resource: string;
@@ -395,11 +395,169 @@ export interface DashboardPermission {
   updatedAt: Date;
 }
 
-export const insertDashboardPermissionSchema = z.object({
+// Legacy compatibility
+export interface DashboardPermission extends Permission {}
+
+// Permission Resources
+export const PERMISSION_RESOURCES = {
+  USERS: 'users',
+  TEAMS: 'teams', 
+  VENUES: 'venues',
+  BOOKINGS: 'bookings',
+  COUNTRIES: 'countries',
+  SPORTS: 'sports',
+  VENUE_TYPES: 'venue_types',
+  SYSTEM_CONFIG: 'system_config',
+  DASHBOARD_STATS: 'dashboard_stats',
+  AUDIT_LOGS: 'audit_logs',
+  NOTIFICATIONS: 'notifications',
+  PERMISSIONS: 'permissions',
+  PROFILE: 'profile'
+} as const;
+
+// Permission Actions
+export const PERMISSION_ACTIONS = {
+  CREATE: 'create',
+  READ: 'read',
+  UPDATE: 'update',
+  DELETE: 'delete',
+  APPROVE: 'approve',
+  DENY: 'deny',
+  ASSIGN: 'assign',
+  MANAGE: 'manage',
+  VIEW_ALL: 'view_all',
+  VIEW_OWN: 'view_own'
+} as const;
+
+export type PermissionResource = typeof PERMISSION_RESOURCES[keyof typeof PERMISSION_RESOURCES];
+export type PermissionAction = typeof PERMISSION_ACTIONS[keyof typeof PERMISSION_ACTIONS];
+
+export const insertPermissionSchema = z.object({
   role: z.enum(['superadmin', 'manager', 'user', 'customer']),
-  resource: z.string(),
-  action: z.string(),
+  resource: z.enum(Object.values(PERMISSION_RESOURCES) as [string, ...string[]]),
+  action: z.enum(Object.values(PERMISSION_ACTIONS) as [string, ...string[]]),
   allowed: z.boolean(),
 });
 
-export type InsertDashboardPermission = z.infer<typeof insertDashboardPermissionSchema>;
+// Legacy compatibility
+export const insertDashboardPermissionSchema = insertPermissionSchema;
+
+export type InsertPermission = z.infer<typeof insertPermissionSchema>;
+export type InsertDashboardPermission = InsertPermission;
+
+// Default Permission Sets for each role
+export const DEFAULT_PERMISSIONS = {
+  superadmin: [
+    // Full access to everything
+    { resource: 'users', action: 'create', allowed: true },
+    { resource: 'users', action: 'read', allowed: true },
+    { resource: 'users', action: 'update', allowed: true },
+    { resource: 'users', action: 'delete', allowed: true },
+    { resource: 'users', action: 'manage', allowed: true },
+    
+    { resource: 'teams', action: 'create', allowed: true },
+    { resource: 'teams', action: 'read', allowed: true },
+    { resource: 'teams', action: 'update', allowed: true },
+    { resource: 'teams', action: 'delete', allowed: true },
+    { resource: 'teams', action: 'assign', allowed: true },
+    
+    { resource: 'venues', action: 'create', allowed: true },
+    { resource: 'venues', action: 'read', allowed: true },
+    { resource: 'venues', action: 'update', allowed: true },
+    { resource: 'venues', action: 'delete', allowed: true },
+    { resource: 'venues', action: 'manage', allowed: true },
+    
+    { resource: 'bookings', action: 'create', allowed: true },
+    { resource: 'bookings', action: 'read', allowed: true },
+    { resource: 'bookings', action: 'update', allowed: true },
+    { resource: 'bookings', action: 'delete', allowed: true },
+    { resource: 'bookings', action: 'approve', allowed: true },
+    { resource: 'bookings', action: 'deny', allowed: true },
+    
+    { resource: 'system_config', action: 'read', allowed: true },
+    { resource: 'system_config', action: 'update', allowed: true },
+    
+    { resource: 'dashboard_stats', action: 'read', allowed: true },
+    { resource: 'audit_logs', action: 'read', allowed: true },
+    { resource: 'permissions', action: 'manage', allowed: true },
+    
+    { resource: 'countries', action: 'create', allowed: true },
+    { resource: 'countries', action: 'read', allowed: true },
+    { resource: 'countries', action: 'update', allowed: true },
+    { resource: 'countries', action: 'delete', allowed: true },
+    
+    { resource: 'sports', action: 'create', allowed: true },
+    { resource: 'sports', action: 'read', allowed: true },
+    { resource: 'sports', action: 'update', allowed: true },
+    { resource: 'sports', action: 'delete', allowed: true },
+    
+    { resource: 'venue_types', action: 'create', allowed: true },
+    { resource: 'venue_types', action: 'read', allowed: true },
+    { resource: 'venue_types', action: 'update', allowed: true },
+    { resource: 'venue_types', action: 'delete', allowed: true },
+  ],
+  manager: [
+    // Limited user management
+    { resource: 'users', action: 'read', allowed: true },
+    { resource: 'users', action: 'view_own', allowed: true },
+    
+    // Team management for assigned teams
+    { resource: 'teams', action: 'read', allowed: true },
+    { resource: 'teams', action: 'update', allowed: true },
+    { resource: 'teams', action: 'view_own', allowed: true },
+    
+    // Venue management for assigned venues
+    { resource: 'venues', action: 'read', allowed: true },
+    { resource: 'venues', action: 'update', allowed: true },
+    { resource: 'venues', action: 'view_own', allowed: true },
+    
+    // Booking approval powers
+    { resource: 'bookings', action: 'read', allowed: true },
+    { resource: 'bookings', action: 'approve', allowed: true },
+    { resource: 'bookings', action: 'deny', allowed: true },
+    
+    // Read access to reference data
+    { resource: 'countries', action: 'read', allowed: true },
+    { resource: 'sports', action: 'read', allowed: true },
+    { resource: 'venue_types', action: 'read', allowed: true },
+    
+    { resource: 'dashboard_stats', action: 'read', allowed: true },
+    { resource: 'notifications', action: 'read', allowed: true },
+    { resource: 'profile', action: 'update', allowed: true }
+  ],
+  user: [
+    // Basic user permissions
+    { resource: 'teams', action: 'read', allowed: true },
+    { resource: 'venues', action: 'read', allowed: true },
+    
+    // Booking management for own bookings
+    { resource: 'bookings', action: 'create', allowed: true },
+    { resource: 'bookings', action: 'view_own', allowed: true },
+    { resource: 'bookings', action: 'update', allowed: true },
+    
+    // Reference data access
+    { resource: 'countries', action: 'read', allowed: true },
+    { resource: 'sports', action: 'read', allowed: true },
+    { resource: 'venue_types', action: 'read', allowed: true },
+    
+    { resource: 'notifications', action: 'read', allowed: true },
+    { resource: 'profile', action: 'update', allowed: true }
+  ],
+  customer: [
+    // NOC user permissions - similar to user but country-restricted
+    { resource: 'teams', action: 'read', allowed: true },
+    { resource: 'venues', action: 'read', allowed: true },
+    
+    // Booking management for own bookings
+    { resource: 'bookings', action: 'create', allowed: true },
+    { resource: 'bookings', action: 'view_own', allowed: true },
+    
+    // Reference data access
+    { resource: 'countries', action: 'read', allowed: true },
+    { resource: 'sports', action: 'read', allowed: true },
+    { resource: 'venue_types', action: 'read', allowed: true },
+    
+    { resource: 'notifications', action: 'read', allowed: true },
+    { resource: 'profile', action: 'update', allowed: true }
+  ]
+} as const;

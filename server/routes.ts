@@ -95,6 +95,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { initializeDefaultUsers } = await import('./init-users');
   await initializeDefaultUsers();
   
+  // Initialize default permissions
+  const { initializeDefaultPermissions } = await import('./init-permissions');
+  await initializeDefaultPermissions();
+  
   // Initialize base data (countries and sports)
   const { initializeBaseData } = await import('./init-data');
   await initializeBaseData();
@@ -1256,15 +1260,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard permissions routes (SuperAdmin only)
-  app.get('/api/dashboard/permissions', isAuthenticated, async (req: any, res) => {
+  // Comprehensive Permission Management Routes (SuperAdmin only)
+  const { requirePermission, PermissionService } = await import('./permissions');
+  
+  // Get all permissions (optionally filtered by role)
+  app.get('/api/permissions', isAuthenticated, requirePermission('permissions', 'manage'), async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'superadmin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
+      const role = req.query.role;
+      const permissions = await storage.getDashboardPermissions(role);
+      res.json(permissions);
+    } catch (error) {
+      console.error("Error fetching permissions:", error);
+      res.status(500).json({ message: "Failed to fetch permissions" });
+    }
+  });
+  
+  // Get permission matrix (all roles and resources)
+  app.get('/api/permissions/matrix', isAuthenticated, requirePermission('permissions', 'manage'), async (req: any, res) => {
+    try {
       const permissions = await storage.getDashboardPermissions();
+      
+      // Group permissions by role and resource for easy display
+      const matrix = permissions.reduce((acc: any, permission) => {
+        if (!acc[permission.role]) acc[permission.role] = {};
+        if (!acc[permission.role][permission.resource]) acc[permission.role][permission.resource] = {};
+        acc[permission.role][permission.resource][permission.action] = permission.allowed;
+        return acc;
+      }, {});
+      
+      res.json({
+        matrix,
+        permissions,
+        resources: Object.values(require('@shared/types').PERMISSION_RESOURCES),
+        actions: Object.values(require('@shared/types').PERMISSION_ACTIONS)
+      });
+    } catch (error) {
+      console.error("Error fetching permission matrix:", error);
+      res.status(500).json({ message: "Failed to fetch permission matrix" });
+    }
+  });
+
+  // Create new permission
+  app.post('/api/permissions', isAuthenticated, requirePermission('permissions', 'manage'), async (req: any, res) => {
+    try {
+      const permission = await storage.createDashboardPermission(req.body);
+      
+      // Clear permission cache for the role
+      PermissionService.clearCache(req.body.role);
+      
+      await createAuditLog(req, 'CREATE', 'permission', permission.id, null, req.body);
+      res.json(permission);
+    } catch (error) {
+      console.error("Error creating permission:", error);
+      res.status(500).json({ message: "Failed to create permission" });
+    }
+  });
+
+  // Update permission
+  app.put('/api/permissions/:id', isAuthenticated, requirePermission('permissions', 'manage'), async (req: any, res) => {
+    try {
+      const permission = await storage.updateDashboardPermission(req.params.id, req.body);
+      
+      // Clear permission cache for the role
+      PermissionService.clearCache(req.body.role);
+      
+      await createAuditLog(req, 'UPDATE', 'permission', req.params.id, null, req.body);
+      res.json(permission);
+    } catch (error) {
+      console.error("Error updating permission:", error);
+      res.status(500).json({ message: "Failed to update permission" });
+    }
+  });
+  
+  // Delete permission
+  app.delete('/api/permissions/:id', isAuthenticated, requirePermission('permissions', 'manage'), async (req: any, res) => {
+    try {
+      const permission = await storage.getDashboardPermissions().then(perms => 
+        perms.find(p => p.id === req.params.id)
+      );
+      
+      await storage.deleteDashboardPermission(req.params.id);
+      
+      // Clear permission cache for the role
+      if (permission) {
+        PermissionService.clearCache(permission.role);
+      }
+      
+      await createAuditLog(req, 'DELETE', 'permission', req.params.id);
+      res.json({ message: 'Permission deleted successfully' });
+    } catch (error) {
+      console.error("Error deleting permission:", error);
+      res.status(500).json({ message: "Failed to delete permission" });
+    }
+  });
+  
+  // Reset role permissions to defaults
+  app.post('/api/permissions/reset/:role', isAuthenticated, requirePermission('permissions', 'manage'), async (req: any, res) => {
+    try {
+      const role = req.params.role as 'superadmin' | 'manager' | 'user' | 'customer';
+      const { resetRolePermissions } = await import('./init-permissions');
+      
+      await resetRolePermissions(role);
+      
+      // Clear permission cache for the role
+      PermissionService.clearCache(role);
+      
+      await createAuditLog(req, 'RESET', 'permissions', role);
+      res.json({ message: `Permissions reset successfully for role: ${role}` });
+    } catch (error) {
+      console.error("Error resetting permissions:", error);
+      res.status(500).json({ message: "Failed to reset permissions" });
+    }
+  });
+  
+  // Legacy compatibility routes
+  app.get('/api/dashboard/permissions', isAuthenticated, requirePermission('permissions', 'manage'), async (req: any, res) => {
+    try {
+      const role = req.query.role;
+      const permissions = await storage.getDashboardPermissions(role);
       res.json(permissions);
     } catch (error) {
       console.error("Error fetching dashboard permissions:", error);
@@ -1272,14 +1385,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/dashboard/permissions/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/dashboard/permissions/:id', isAuthenticated, requirePermission('permissions', 'manage'), async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'superadmin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
       const permission = await storage.updateDashboardPermission(req.params.id, req.body);
+      
+      // Clear permission cache for the role
+      PermissionService.clearCache(req.body.role);
+      
       await createAuditLog(req, 'UPDATE', 'dashboard_permission', req.params.id, null, req.body);
       res.json(permission);
     } catch (error) {
