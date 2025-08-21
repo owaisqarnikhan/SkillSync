@@ -157,11 +157,15 @@ export default function ManagerDashboard() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="approvals" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="dashboard" data-testid="dashboard-tab">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Dashboard
+            </TabsTrigger>
             <TabsTrigger value="approvals" data-testid="approvals-tab">
               <Clock className="w-4 h-4 mr-2" />
-              Pending Approvals
+              Approvals
             </TabsTrigger>
             <TabsTrigger value="venues" data-testid="venues-tab">
               <MapPin className="w-4 h-4 mr-2" />
@@ -176,6 +180,71 @@ export default function ManagerDashboard() {
               Analytics
             </TabsTrigger>
           </TabsList>
+
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5" />
+                    <span>Management Overview</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Pending Approvals:</span>
+                      <span className="font-medium">{pendingBookings.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">My Venues:</span>
+                      <span className="font-medium">{venues.filter(v => v.managerId === user?.id).length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">My Teams:</span>
+                      <span className="font-medium">{teams.filter(t => t.managerId === user?.id).length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Active Bookings:</span>
+                      <span className="font-medium">{(stats as any)?.activeBookings || 0}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Settings className="w-5 h-5" />
+                    <span>Quick Actions</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {pendingBookings.length > 0 && (
+                      <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-yellow-600" />
+                            <span className="text-sm font-medium text-yellow-800">
+                              {pendingBookings.length} booking{pendingBookings.length > 1 ? 's' : ''} need approval
+                            </span>
+                          </div>
+                          <Button size="sm" variant="outline">Review</Button>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-600">
+                      Manage your venues, teams, and booking approvals from the tabs above.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Pending Approvals Tab */}
           <TabsContent value="approvals" className="space-y-6">

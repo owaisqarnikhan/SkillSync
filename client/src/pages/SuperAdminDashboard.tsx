@@ -884,8 +884,12 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="system-config" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-10 gap-1 h-auto p-1">
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-11 gap-1 h-auto p-1">
+            <TabsTrigger value="dashboard" data-testid="dashboard-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <BarChart3 className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Dashboard</span>
+            </TabsTrigger>
             <TabsTrigger value="system-config" data-testid="system-config-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <Settings className="w-4 h-4 flex-shrink-0" />
               <span className="truncate text-xs sm:text-sm">Config</span>
@@ -927,6 +931,71 @@ export default function SuperAdminDashboard() {
               <span className="truncate text-xs sm:text-sm">V.Types</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5" />
+                    <span>System Overview</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Users:</span>
+                      <span className="font-medium">{allUsers?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Active Teams:</span>
+                      <span className="font-medium">{teams.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Venues:</span>
+                      <span className="font-medium">{venues.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Bookings:</span>
+                      <span className="font-medium">{bookings.length}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Crown className="w-5 h-5" />
+                    <span>Quick Actions</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-3">
+                    <Button variant="outline" className="justify-start" onClick={() => setUserModalOpen(true)}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Add New User
+                    </Button>
+                    <Button variant="outline" className="justify-start" onClick={() => setTeamModalOpen(true)}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Create Team
+                    </Button>
+                    <Button variant="outline" className="justify-start" onClick={() => setVenueModalOpen(true)}>
+                      <Building className="w-4 h-4 mr-2" />
+                      Add Venue
+                    </Button>
+                    <Button variant="outline" className="justify-start" onClick={() => setAdminBookingModalOpen(true)}>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Create Booking
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* System Configuration Tab */}
           <TabsContent value="system-config" className="space-y-6">

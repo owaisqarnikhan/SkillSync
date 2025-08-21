@@ -19,7 +19,8 @@ import {
   CheckCircle,
   AlertCircle,
   Trophy,
-  Bell
+  Bell,
+  BarChart3
 } from "lucide-react";
 import type { BookingWithDetails, VenueWithDetails, TeamWithDetails, NotificationWithDetails } from "@shared/types";
 import { format, parseISO, isAfter } from "date-fns";
@@ -29,7 +30,7 @@ export default function UserDashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   // Redirect if not User/Customer
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function UserDashboard() {
   );
 
   // Filter recent notifications
-  const recentNotifications = notifications.filter(n => !n.isRead).slice(0, 5);
+  const recentNotifications = notifications.filter(n => !n.readAt).slice(0, 5);
 
   if (isLoading) {
     return (
@@ -189,9 +190,9 @@ export default function UserDashboard() {
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto">
-            <TabsTrigger value="overview" data-testid="overview-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
-              <Calendar className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">Overview</span>
+            <TabsTrigger value="dashboard" data-testid="dashboard-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
+              <BarChart3 className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Dashboard</span>
             </TabsTrigger>
             <TabsTrigger value="bookings" data-testid="my-bookings-tab" className="mobile-tab flex flex-col sm:flex-row items-center gap-1">
               <CheckCircle className="w-4 h-4 flex-shrink-0" />
@@ -211,8 +212,8 @@ export default function UserDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Upcoming Bookings */}
               <Card>
