@@ -18,9 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { SystemConfig } from "@shared/types";
 import { 
   Trophy, 
-  Globe, 
   Bell, 
-  ChevronDown, 
   Menu, 
   User,
   Calendar,
@@ -33,7 +31,8 @@ import {
   Home,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown
 } from "lucide-react";
 import { getSidebarLogoSizeConfig } from "@/utils/logoUtils";
 import type { NotificationWithDetails } from "@shared/types";
@@ -57,15 +56,28 @@ export default function Sidebar() {
     window.dispatchEvent(event);
   };
 
-  // Fetch unread notifications count
+  // Fetch all notifications for dropdown
   const { data: notifications } = useQuery<NotificationWithDetails[]>({
+    queryKey: ["/api/notifications"],
+    enabled: isAuthenticated,
+    queryFn: async () => {
+      const response = await fetch("/api/notifications", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch notifications");
+      return response.json();
+    },
+  });
+
+  // Fetch unread notifications count separately
+  const { data: unreadNotifications } = useQuery<NotificationWithDetails[]>({
     queryKey: ["/api/notifications", "unreadOnly=true"],
     enabled: isAuthenticated,
     queryFn: async () => {
       const response = await fetch("/api/notifications?unreadOnly=true", {
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Failed to fetch notifications");
+      if (!response.ok) throw new Error("Failed to fetch unread notifications");
       return response.json();
     },
   });
@@ -79,7 +91,7 @@ export default function Sidebar() {
   // Get logo size configuration - always use medium/default size for sidebar
   const logoSizeConfig = getSidebarLogoSizeConfig('medium');
 
-  const unreadCount = notifications?.length || 0;
+  const unreadCount = unreadNotifications?.length || 0;
 
   const handleLogout = async () => {
     try {
@@ -300,7 +312,7 @@ export default function Sidebar() {
       {/* Footer */}
       <div className={`py-4 border-t ${!isMobile && isCollapsed ? 'px-1' : 'px-3'}`}>
         <div className="space-y-3">
-          {/* Language & Notifications */}
+          {/* Notifications */}
           {!isMobile && isCollapsed ? (
             <div className="flex flex-col items-center space-y-2">
               <TooltipProvider>
@@ -311,42 +323,40 @@ export default function Sidebar() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="p-2"
-                          data-testid="language-switcher"
+                          className="relative p-2"
+                          data-testid="notifications-button"
                         >
-                          <Globe className="h-4 w-4" />
+                          <Bell className="h-4 w-4" />
+                          {unreadCount > 0 && (
+                            <Badge 
+                              variant="destructive" 
+                              className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                              data-testid="notification-count"
+                            >
+                              {unreadCount}
+                            </Badge>
+                          )}
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem data-testid="language-en">English</DropdownMenuItem>
-                        <DropdownMenuItem data-testid="language-ar">العربية</DropdownMenuItem>
+                      <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto">
+                        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                        {notifications && notifications.length > 0 ? (
+                          notifications.map((notification) => (
+                            <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3 border-b">
+                              <div className="font-medium text-sm mb-1">{notification.title}</div>
+                              <div className="text-xs text-gray-600 mb-2">{notification.message}</div>
+                              <div className="text-xs text-gray-400">
+                                {new Date(notification.createdAt).toLocaleDateString()}
+                              </div>
+                            </DropdownMenuItem>
+                          ))
+                        ) : (
+                          <DropdownMenuItem disabled>
+                            <div className="text-sm text-gray-500">No notifications</div>
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>Language</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="relative p-2"
-                      data-testid="notifications-button"
-                    >
-                      <Bell className="h-4 w-4" />
-                      {unreadCount > 0 && (
-                        <Badge 
-                          variant="destructive" 
-                          className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
-                          data-testid="notification-count"
-                        >
-                          {unreadCount}
-                        </Badge>
-                      )}
-                    </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>Notifications{unreadCount > 0 ? ` (${unreadCount})` : ''}</p>
@@ -355,43 +365,46 @@ export default function Sidebar() {
               </TooltipProvider>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-center">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="flex items-center space-x-1"
-                    data-testid="language-switcher"
+                    className="relative"
+                    data-testid="notifications-button"
                   >
-                    <Globe className="h-3 w-3" />
-                    <span className="text-xs">EN</span>
-                    <ChevronDown className="h-2 w-2" />
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                        data-testid="notification-count"
+                      >
+                        {unreadCount}
+                      </Badge>
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem data-testid="language-en">English</DropdownMenuItem>
-                  <DropdownMenuItem data-testid="language-ar">العربية</DropdownMenuItem>
+                <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto">
+                  <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                  {notifications && notifications.length > 0 ? (
+                    notifications.map((notification) => (
+                      <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3 border-b">
+                        <div className="font-medium text-sm mb-1">{notification.title}</div>
+                        <div className="text-xs text-gray-600 mb-2">{notification.message}</div>
+                        <div className="text-xs text-gray-400">
+                          {new Date(notification.createdAt).toLocaleDateString()}
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      <div className="text-sm text-gray-500">No notifications</div>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="relative"
-                data-testid="notifications-button"
-              >
-                <Bell className="h-3 w-3" />
-                {unreadCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
-                    data-testid="notification-count"
-                  >
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
             </div>
           )}
 

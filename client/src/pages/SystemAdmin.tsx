@@ -211,78 +211,77 @@ export default function SystemAdmin() {
         </div>
 
         <Tabs defaultValue="login-config" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 h-auto">
+          <TabsList className="grid w-full grid-cols-2 h-auto">
             <TabsTrigger value="login-config" data-testid="login-config-tab" className="mobile-tab">
               <Settings className="w-4 h-4 mr-2" />
-              Login Page
+              System Config
             </TabsTrigger>
             <TabsTrigger value="branding" data-testid="branding-tab" className="mobile-tab">
               <Image className="w-4 h-4 mr-2" />
               Branding
             </TabsTrigger>
-            <TabsTrigger value="email" data-testid="email-tab" className="mobile-tab">
-              <Mail className="w-4 h-4 mr-2" />
-              Email Settings
-            </TabsTrigger>
           </TabsList>
 
-          {/* Login Configuration Tab */}
+          {/* System Configuration Tab */}
           <TabsContent value="login-config" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Settings className="w-5 h-5" />
-                  <span>Login Page Configuration</span>
+                  <span>System Configuration</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="loginHeading1">Login Heading 1</Label>
+                      <Label htmlFor="systemName">System Name</Label>
                       <Input
-                        id="loginHeading1"
-                        value={systemConfig.loginHeading1 || ''}
-                        onChange={(e) => setSystemConfig(prev => ({ ...prev, loginHeading1: e.target.value }))}
-                        placeholder="Welcome to"
-                        data-testid="input-login-heading-1"
+                        id="systemName"
+                        value={systemConfig.systemName || ''}
+                        onChange={(e) => setSystemConfig(prev => ({ ...prev, systemName: e.target.value }))}
+                        placeholder="Asian Youth Games"
+                        data-testid="input-system-name"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="loginHeading2">Login Heading 2</Label>
+                      <Label htmlFor="systemSubtitle">System Subtitle</Label>
                       <Input
-                        id="loginHeading2"
-                        value={systemConfig.loginHeading2 || ''}
-                        onChange={(e) => setSystemConfig(prev => ({ ...prev, loginHeading2: e.target.value }))}
-                        placeholder="Bahrain Asian Youth Games 2025"
-                        data-testid="input-login-heading-2"
+                        id="systemSubtitle"
+                        value={systemConfig.systemSubtitle || ''}
+                        onChange={(e) => setSystemConfig(prev => ({ ...prev, systemSubtitle: e.target.value }))}
+                        placeholder="Bahrain 2025"
+                        data-testid="input-system-subtitle"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="loginHeading3">Login Heading 3</Label>
-                      <Input
-                        id="loginHeading3"
-                        value={systemConfig.loginHeading3 || ''}
-                        onChange={(e) => setSystemConfig(prev => ({ ...prev, loginHeading3: e.target.value }))}
-                        placeholder="Training Management System"
-                        data-testid="input-login-heading-3"
-                      />
+                      <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="maintenanceMode"
+                          checked={systemConfig.maintenanceMode || false}
+                          onChange={(e) => setSystemConfig(prev => ({ ...prev, maintenanceMode: e.target.checked }))}
+                          data-testid="input-maintenance-mode"
+                        />
+                        <span className="text-sm text-gray-600">Enable maintenance mode</span>
+                      </div>
                     </div>
                   </div>
                   
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="font-medium mb-3">Preview</h4>
                     <div className="text-center space-y-2">
-                      <h1 className="text-2xl font-bold text-gray-900">
-                        {systemConfig.loginHeading1 || 'Welcome to'}
+                      <h1 className="text-lg font-light text-gray-800">
+                        {systemConfig.systemName || 'Asian Youth Games'}
                       </h1>
-                      <h2 className="text-xl font-semibold text-blue-600">
-                        {systemConfig.loginHeading2 || 'Bahrain Asian Youth Games 2025'}
+                      <h2 className="text-lg font-light text-gray-800">
+                        {systemConfig.systemSubtitle || 'Bahrain 2025'}
                       </h2>
-                      <h3 className="text-lg text-gray-700">
-                        {systemConfig.loginHeading3 || 'Training Management System'}
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Training Management System
                       </h3>
                     </div>
                   </div>
@@ -294,12 +293,12 @@ export default function SystemAdmin() {
           {/* Branding Tab */}
           <TabsContent value="branding" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Logo Upload */}
+              {/* Login Logo Upload */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Image className="w-5 h-5" />
-                    <span>Dashboard Logo</span>
+                    <span>Login & Dashboard Logo</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -308,7 +307,7 @@ export default function SystemAdmin() {
                       <div className="mb-4">
                         <img
                           src={systemConfig.logoUrl}
-                          alt="Dashboard Logo"
+                          alt="Login & Dashboard Logo"
                           className="max-h-32 mx-auto object-contain"
                           data-testid="current-logo"
                         />
@@ -339,7 +338,7 @@ export default function SystemAdmin() {
                     <Label htmlFor="logoSize">Logo Size</Label>
                     <Select
                       value={systemConfig.logoSize || 'medium'}
-                      onValueChange={(value) => setSystemConfig(prev => ({ ...prev, logoSize: value }))}
+                      onValueChange={(value: 'small' | 'medium' | 'large' | 'xlarge') => setSystemConfig(prev => ({ ...prev, logoSize: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select logo size" />
@@ -352,7 +351,7 @@ export default function SystemAdmin() {
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-gray-500">
-                      Logo size will be applied to both desktop and mobile headers
+                      Logo size will be applied to login page and dashboard headers
                     </p>
                   </div>
                 </CardContent>
@@ -402,93 +401,6 @@ export default function SystemAdmin() {
             </div>
           </TabsContent>
 
-          {/* Email Settings Tab */}
-          <TabsContent value="email" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Mail className="w-5 h-5" />
-                  <span>SMTP Configuration</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="smtpHost">SMTP Host</Label>
-                    <Input
-                      id="smtpHost"
-                      value={systemConfig.smtpHost || ''}
-                      onChange={(e) => setSystemConfig(prev => ({ ...prev, smtpHost: e.target.value }))}
-                      placeholder="smtp.gmail.com"
-                      data-testid="input-smtp-host"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="smtpPort">SMTP Port</Label>
-                    <Input
-                      id="smtpPort"
-                      type="number"
-                      value={systemConfig.smtpPort || ''}
-                      onChange={(e) => setSystemConfig(prev => ({ ...prev, smtpPort: parseInt(e.target.value) }))}
-                      placeholder="587"
-                      data-testid="input-smtp-port"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="smtpUsername">SMTP Username</Label>
-                    <Input
-                      id="smtpUsername"
-                      value={systemConfig.smtpUsername || ''}
-                      onChange={(e) => setSystemConfig(prev => ({ ...prev, smtpUsername: e.target.value }))}
-                      placeholder="your-email@gmail.com"
-                      data-testid="input-smtp-username"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="smtpPassword">SMTP Password</Label>
-                    <Input
-                      id="smtpPassword"
-                      type="password"
-                      value={systemConfig.smtpPassword || ''}
-                      onChange={(e) => setSystemConfig(prev => ({ ...prev, smtpPassword: e.target.value }))}
-                      placeholder="app-password"
-                      data-testid="input-smtp-password"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="smtpFromEmail">From Email</Label>
-                    <Input
-                      id="smtpFromEmail"
-                      type="email"
-                      value={systemConfig.smtpFromEmail || ''}
-                      onChange={(e) => setSystemConfig(prev => ({ ...prev, smtpFromEmail: e.target.value }))}
-                      placeholder="noreply@training.bh"
-                      data-testid="input-smtp-from-email"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="smtpFromName">From Name</Label>
-                    <Input
-                      id="smtpFromName"
-                      value={systemConfig.smtpFromName || ''}
-                      onChange={(e) => setSystemConfig(prev => ({ ...prev, smtpFromName: e.target.value }))}
-                      placeholder="Training Management System"
-                      data-testid="input-smtp-from-name"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
 
         {/* Save Button */}

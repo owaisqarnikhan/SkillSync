@@ -35,7 +35,7 @@ export default function SecureLogin() {
   // Redirect authenticated users to appropriate dashboard
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      setLocation("/dashboard");
+      setLocation("/");
     }
   }, [isAuthenticated, isLoading, setLocation]);
 
@@ -91,23 +91,31 @@ export default function SecureLogin() {
           {/* Logo Section */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl mb-6">
-              <img 
-                src="/assets/bahrain_logo.png" 
-                alt="Asian Youth Games Logo" 
-                className="h-10 w-10 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling!.style.display = 'block';
-                }}
-              />
+              {systemConfig?.logoUrl ? (
+                <img 
+                  src={systemConfig.logoUrl} 
+                  alt="Login Logo" 
+                  className="h-12 w-12 object-contain"
+                />
+              ) : (
+                <img 
+                  src="/assets/bahrain_logo.png" 
+                  alt="Asian Youth Games Logo" 
+                  className="h-10 w-10 object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'block';
+                  }}
+                />
+              )}
               <div className="text-2xl font-bold text-white hidden">AYG</div>
             </div>
             
             <h1 className="text-lg font-light text-gray-800 mb-1">
-              Asian Youth Games
+              {systemConfig?.systemName || "Asian Youth Games"}
             </h1>
             <h2 className="text-lg font-light text-gray-800 mb-1">
-              Bahrain 2025
+              {systemConfig?.systemSubtitle || "Bahrain 2025"}
             </h2>
             <h3 className="text-lg font-medium text-gray-900 mb-8">
               Training Management System
@@ -218,15 +226,23 @@ export default function SecureLogin() {
         {/* Logo in the bottom right */}
         <div className="absolute bottom-8 right-8 animate-slideInRight">
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-            <img 
-              src="/assets/bahrain_logo.png" 
-              alt="Asian Youth Games Logo" 
-              className="h-16 w-16 object-contain opacity-90"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling!.style.display = 'block';
-              }}
-            />
+            {systemConfig?.logoUrl ? (
+              <img 
+                src={systemConfig.logoUrl} 
+                alt="Login Logo" 
+                className="h-16 w-16 object-contain opacity-90"
+              />
+            ) : (
+              <img 
+                src="/assets/bahrain_logo.png" 
+                alt="Asian Youth Games Logo" 
+                className="h-16 w-16 object-contain opacity-90"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'block';
+                }}
+              />
+            )}
             <div className="text-white text-2xl font-bold hidden">AYG</div>
           </div>
           <div className="text-white text-right mt-2">
