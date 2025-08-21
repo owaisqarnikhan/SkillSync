@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 import NotFound from "@/pages/not-found";
+import Login from "@/pages/Login";
 import SecureLogin from "@/pages/SecureLogin";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 import ManagerDashboard from "@/pages/ManagerDashboard";
@@ -65,7 +66,8 @@ function Router() {
   if (!isAuthenticated) {
     return (
       <Switch>
-        <Route path="/" component={SecureLogin} />
+        <Route path="/" component={Login} />
+        <Route path="/login" component={Login} />
         <Route component={NotFound} />
       </Switch>
     );
