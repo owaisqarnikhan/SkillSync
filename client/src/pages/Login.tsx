@@ -56,7 +56,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+      <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md space-y-8">
           {/* Header */}
           <div className="text-center">
@@ -70,7 +70,7 @@ export default function Login() {
           </div>
 
           {/* Login Card */}
-          <Card className="shadow-lg border-0">
+          <Card className="bg-white border-0 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-semibold text-center">Sign In</CardTitle>
               <CardDescription className="text-center">
