@@ -15,6 +15,8 @@ import {
   insertSportSchema,
   insertVenueTypeSchema,
   adminBookingSchema,
+  PERMISSION_RESOURCES,
+  PERMISSION_ACTIONS,
   type Sport,
   type InsertSport,
   type VenueType,
@@ -1291,8 +1293,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         matrix,
         permissions,
-        resources: Object.values(require('@shared/types').PERMISSION_RESOURCES),
-        actions: Object.values(require('@shared/types').PERMISSION_ACTIONS)
+        resources: Object.values(PERMISSION_RESOURCES),
+        actions: Object.values(PERMISSION_ACTIONS)
       });
     } catch (error) {
       console.error("Error fetching permission matrix:", error);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,8 +22,9 @@ import {
 } from "@/components/ui/form";
 import { Eye, EyeOff, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import type { SystemConfig } from "@shared/types";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -35,6 +36,12 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+
+  // Fetch system configuration for logo and branding
+  const { data: systemConfig } = useQuery({
+    queryKey: ["/api/system/config"],
+    queryFn: () => apiRequest("GET", "/api/system/config"),
+  });
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -51,7 +58,8 @@ export default function Login() {
         title: "Login Successful",
         description: "Welcome to the Training Management System!",
       });
-      window.location.href = "/dashboard";
+      // Redirect to root path, which will handle role-based routing
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
@@ -74,12 +82,31 @@ export default function Login() {
           {/* Header */}
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
-              <Shield className="h-12 w-12 text-blue-600" />
+              {systemConfig?.logoUrl ? (
+                <img
+                  src={systemConfig.logoUrl}
+                  alt="Logo"
+                  className={`object-contain ${
+                    systemConfig.logoSize === 'small' ? 'h-8 w-8' :
+                    systemConfig.logoSize === 'medium' ? 'h-12 w-12' :
+                    systemConfig.logoSize === 'large' ? 'h-16 w-16' :
+                    systemConfig.logoSize === 'xlarge' ? 'h-20 w-20' :
+                    'h-12 w-12'
+                  }`}
+                />
+              ) : (
+                <Shield className="h-12 w-12 text-blue-600" />
+              )}
             </div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Asian Youth Games
+              {systemConfig?.systemName || "Asian Youth Games"}
             </h1>
-            <h1 className="text-3xl font-bold text-gray-900">Bahrain 2025</h1>
+            {systemConfig?.systemSubtitle && (
+              <h1 className="text-3xl font-bold text-gray-900">{systemConfig.systemSubtitle}</h1>
+            )}
+            {!systemConfig?.systemName && (
+              <h1 className="text-3xl font-bold text-gray-900">Bahrain 2025</h1>
+            )}
             <p className="mt-2 text-gray-600">
               Sign in to access the Training Management System
             </p>
@@ -112,7 +139,7 @@ export default function Login() {
                             {...field}
                             placeholder="Enter your username"
                             className="h-11"
-                            disabled={loginMutation.isLoading}
+                            disabled={loginMutation.isPending}
                           />
                         </FormControl>
                         <FormMessage />
@@ -133,7 +160,7 @@ export default function Login() {
                               type={showPassword ? "text" : "password"}
                               placeholder="Enter your password"
                               className="h-11 pr-10"
-                              disabled={loginMutation.isLoading}
+                              disabled={loginMutation.isPending}
                             />
                             <Button
                               type="button"
@@ -141,7 +168,7 @@ export default function Login() {
                               size="sm"
                               className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                               onClick={() => setShowPassword(!showPassword)}
-                              disabled={loginMutation.isLoading}
+                              disabled={loginMutation.isPending}
                             >
                               {showPassword ? (
                                 <EyeOff className="h-4 w-4" />
@@ -159,9 +186,9 @@ export default function Login() {
                   <Button
                     type="submit"
                     className="w-full h-11 bg-blue-600 hover:bg-blue-700"
-                    disabled={loginMutation.isLoading}
+                    disabled={loginMutation.isPending}
                   >
-                    {loginMutation.isLoading ? (
+                    {loginMutation.isPending ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                         Signing In...

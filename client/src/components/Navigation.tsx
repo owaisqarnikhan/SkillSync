@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Trophy, 
   Globe, 
@@ -19,13 +19,17 @@ import {
   Menu, 
   User 
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import type { NotificationWithDetails } from "@shared/types";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Navigation() {
   const { user, isAuthenticated } = useAuth();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch unread notifications count
   const { data: notifications } = useQuery<NotificationWithDetails[]>({
@@ -40,7 +44,40 @@ export default function Navigation() {
     },
   });
 
+  // Fetch all notifications for dropdown
+  const { data: allNotifications } = useQuery<NotificationWithDetails[]>({
+    queryKey: ["/api/notifications"],
+    enabled: isAuthenticated,
+    queryFn: async () => {
+      const response = await fetch("/api/notifications", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch notifications");
+      return response.json();
+    },
+  });
+
   const unreadCount = notifications?.length || 0;
+
+  // Mutation to mark notification as read
+  const markAsReadMutation = useMutation({
+    mutationFn: (notificationId: string) => 
+      apiRequest("PUT", `/api/notifications/${notificationId}/read`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to mark notification as read",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleMarkAsRead = (notificationId: string) => {
+    markAsReadMutation.mutate(notificationId);
+  };
 
   const navLinks = [
     { href: "/", label: "Dashboard", active: location === "/" },
@@ -123,23 +160,62 @@ export default function Navigation() {
             </DropdownMenu>
 
             {/* Notifications */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="relative"
-              data-testid="notifications-button"
-            >
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                  data-testid="notification-count"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="relative"
+                  data-testid="notifications-button"
                 >
-                  {unreadCount}
-                </Badge>
-              )}
-            </Button>
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                      data-testid="notification-count"
+                    >
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 max-h-80 overflow-y-auto">
+                <div className="p-2 border-b border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900">Notifications</h4>
+                </div>
+                {allNotifications && allNotifications.length > 0 ? (
+                  allNotifications.map((notification) => (
+                    <DropdownMenuItem 
+                      key={notification.id} 
+                      className="p-3 flex flex-col items-start gap-1 cursor-pointer"
+                      onClick={() => handleMarkAsRead(notification.id)}
+                    >
+                      <div className="flex items-start justify-between w-full">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {notification.title}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                        {!notification.isRead && (
+                          <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></div>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <DropdownMenuItem disabled className="p-3 text-center text-gray-500">
+                    No notifications available
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* User Profile */}
             <DropdownMenu>

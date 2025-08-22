@@ -147,7 +147,7 @@ export interface VenueWithDetails extends Venue {
 
 export const insertVenueSchema = z.object({
   name: z.string().min(1),
-  venueTypeId: z.string(),
+  venueTypeId: z.string().optional().nullable(),
   location: z.string().optional().nullable(),
   capacity: z.number().min(1),
   description: z.string().optional().nullable(),
@@ -347,10 +347,6 @@ export interface SystemConfig {
   systemName: string | null;
   systemSubtitle: string | null;
   separatorImageUrl: string | null;
-  // Login page customization
-  loginHeading1: string | null;
-  loginHeading2: string | null;
-  loginHeading3: string | null;
   // Booking rules
   twoHourLimitEnabled: boolean;
   maxBookingDuration: number; // in hours
@@ -373,10 +369,6 @@ export const insertSystemConfigSchema = z.object({
   systemName: z.string().optional().nullable(),
   systemSubtitle: z.string().optional().nullable(),
   separatorImageUrl: z.string().optional().nullable(),
-  // Login page customization
-  loginHeading1: z.string().optional().nullable(),
-  loginHeading2: z.string().optional().nullable(),
-  loginHeading3: z.string().optional().nullable(),
   // Booking rules
   twoHourLimitEnabled: z.boolean().default(false),
   maxBookingDuration: z.number().default(4), // in hours
